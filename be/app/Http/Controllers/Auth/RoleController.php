@@ -8,9 +8,15 @@ use Spatie\Permission\Models\Role;
 
 class RoleController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        return response()->json(Role::all());
+        $query = Role::query();
+
+        if ($search = $request->input('search')) {
+            $query->where('name', 'like', "%{$search}%");
+        }
+
+        return response()->json($query->get());
     }
 
     public function store(Request $request)
