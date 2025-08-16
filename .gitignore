@@ -1,0 +1,6 @@
+be/vendor/
+be/.env
+
+# Node modules
+fe/node_modules/
+fe/.next/
