@@ -1,6 +1,44 @@
-be/vendor/
-be/.env
+# ========================================
+# Global ignores
+# ========================================
+.DS_Store
+Thumbs.db
+*.log
+.env
 
-# Node modules
-fe/node_modules/
+# ========================================
+# Laravel (be/)
+# ========================================
+be/vendor/
+be/node_modules/
+be/.env
+be/.phpunit.result.cache
+be/storage/*.key
+be/storage/app/public
+be/storage/framework/cache/data
+be/storage/framework/sessions
+be/storage/framework/testing
+be/storage/framework/views
+be/storage/logs
+be/public/storage
+be/bootstrap/cache/*.php
+
+# Laravel IDE Helper
+be/_ide_helper.php
+be/_ide_helper_models.php
+be/.phpstorm.meta.php
+
+# ========================================
+# Next.js (fe/)
+# ========================================
 fe/.next/
+fe/node_modules/
+fe/out/
+fe/.env.local
+fe/.env.development.local
+fe/.env.test.local
+fe/.env.production.local
+fe/npm-debug.log*
+fe/yarn-debug.log*
+fe/yarn-error.log*
+fe/pnpm-debug.log*
