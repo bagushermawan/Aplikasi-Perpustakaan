@@ -31,27 +31,18 @@ const Navigation = ({ user }) => {
 
                         {/* Navigation Links */}
                         <div className="hidden space-x-8 sm:-my-px sm:ml-10 sm:flex">
-                            <NavLink
-                                href="/dashboard"
-                                active={usePathname() === '/dashboard'}>
+                            <NavLink href="/dashboard" exact>
                                 Dashboard
                             </NavLink>
-                            <NavLink
-                                href="/roles"
-                                active={usePathname() === '/roles'}>
+                            <NavLink href="/roles" exact>
                                 Roles
                             </NavLink>
-                            <NavLink
-                                href="/permissions"
-                                active={usePathname() === '/permissions'}>
+                            <NavLink href="/permissions" exact>
                                 Permissions
                             </NavLink>
-                            <NavLink
-                                href="/perpus"
-                                active={usePathname() === '/perpus'}>
+                            <NavLink href="/perpus">
                                 Perpus
                             </NavLink>
-
                         </div>
                     </div>
 
