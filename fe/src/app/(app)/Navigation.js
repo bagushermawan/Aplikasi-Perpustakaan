@@ -46,6 +46,12 @@ const Navigation = ({ user }) => {
                                 active={usePathname() === '/permissions'}>
                                 Permissions
                             </NavLink>
+                            <NavLink
+                                href="/perpus"
+                                active={usePathname() === '/perpus'}>
+                                Perpus
+                            </NavLink>
+
                         </div>
                     </div>
 
