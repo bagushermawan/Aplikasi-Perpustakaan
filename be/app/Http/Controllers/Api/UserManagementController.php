@@ -12,7 +12,7 @@ class UserManagementController extends Controller
 {
     public function index()
     {
-        $perPage = request('per_page', 3);
+        $perPage = request('per_page', 5);
         $search  = request('search');
 
         $query = User::query()->orderBy('name', 'asc');
@@ -30,6 +30,11 @@ class UserManagementController extends Controller
                 'search'   => $search,
             ])
         );
+    }
+
+    public function all()
+    {
+        return User::select('id', 'name', 'email')->orderBy('name', 'asc')->get();
     }
 
     public function store(Request $request)

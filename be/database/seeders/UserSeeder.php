@@ -11,26 +11,15 @@ class UserSeeder extends Seeder
 {
     public function run(): void
     {
-        // pastikan role 'user' sudah ada
-        Role::firstOrCreate(['name' => 'user']);
-        Role::firstOrCreate(['name' => 'admin']);
+        $her = User::create([
+            'name'              => 'her',
+            'email'             => 'her@her',
+            'email_verified_at' => now(),
+            'password'          => Hash::make('123'),
+        ]);
 
-        $users = [
-            ['name' => 'her', 'email' => 'her@her', 'role' => 'admin'],
-            ['name' => 'John Doe', 'email' => 'john@example.com', 'role' => 'user'],
-            ['name' => 'Jane Smith', 'email' => 'jane@example.com', 'role' => 'user'],
-            ['name' => 'user xxx', 'email' => 'userxx@example.com', 'role' => 'user'],
-        ];
+        $her->assignRole('admin');
 
-        foreach ($users as $u) {
-            $user = User::create([
-                'name' => $u['name'],
-                'email' => $u['email'],
-                'password' => Hash::make('123'),
-            ]);
-
-            // assign role sesuai
-            $user->assignRole($u['role']);
-        }
+        User::factory()->count(14)->create();
     }
 }

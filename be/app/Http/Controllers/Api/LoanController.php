@@ -13,27 +13,33 @@ class LoanController extends Controller
     {
         $perPage = request('per_page', 5);
         $search  = request('search');
+        $userId  = request('user_id');
 
         $query = Loan::with(['user', 'book'])
             ->join('users', 'loans.user_id', '=', 'users.id')
             ->join('books', 'loans.book_id', '=', 'books.id')
             ->select('loans.*');
 
+        if ($userId) {
+            $query->where('loans.user_id', $userId);
+        }
+
         if ($search) {
             $query->where(function ($q) use ($search) {
                 $q->where('users.name', 'like', "%{$search}%")
                     ->orWhere('books.title', 'like', "%{$search}%")
-                    ->orWhere('status', 'like', "%{$search}%");
+                    ->orWhere('loans.status', 'like', "%{$search}%");
             });
         }
 
-        $query->orderBy('users.name', 'asc');
+        if ($status = request('status')) {
+            $query->where('status', $status);
+        }
+
+        $query->orderBy('loans.created_at', 'desc');
 
         return LoanResource::collection(
-            $query->paginate($perPage)->appends([
-                'per_page' => $perPage,
-                'search'   => $search,
-            ])
+            $query->paginate($perPage)->appends(request()->all())
         );
     }
 

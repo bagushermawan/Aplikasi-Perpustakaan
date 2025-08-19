@@ -33,6 +33,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
 });
 
 Route::prefix('perpus')->middleware(['auth:sanctum', 'role:admin|user'])->group(function () {
+    Route::get('/users/all', [UserManagementController::class, 'all']);
+    Route::get('/books/all', [BookController::class, 'all']);
     Route::apiResource('users', UserManagementController::class);
     Route::apiResource('books', BookController::class);
     Route::apiResource('loans', LoanController::class);

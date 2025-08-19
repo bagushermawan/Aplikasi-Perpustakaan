@@ -17,9 +17,10 @@ class BookFactory extends Factory
     public function definition(): array
     {
         return [
-            'title'  => fake()->sentence(3),
-            'author' => fake()->name,
-            'stock'  => fake()->numberBetween(1, 10),
+            'title'    => $this->faker->sentence(3),
+            'author'   => $this->faker->name,
+            'stock'    => $this->faker->numberBetween(1, 10),
+            'cover'    => "https://picsum.photos/200/300?random=" . $this->faker->unique()->numberBetween(1, 1000),
         ];
     }
 }
