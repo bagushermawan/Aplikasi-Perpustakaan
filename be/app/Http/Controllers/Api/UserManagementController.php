@@ -12,7 +12,24 @@ class UserManagementController extends Controller
 {
     public function index()
     {
-        return UserResource::collection(User::orderBy('name', 'asc')->get());
+        $perPage = request('per_page', 3);
+        $search  = request('search');
+
+        $query = User::query()->orderBy('name', 'asc');
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+
+        return UserResource::collection(
+            $query->paginate($perPage)->appends([
+                'per_page' => $perPage,
+                'search'   => $search,
+            ])
+        );
     }
 
     public function store(Request $request)

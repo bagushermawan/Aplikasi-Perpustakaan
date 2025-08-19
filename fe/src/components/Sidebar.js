@@ -1,24 +1,16 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import useSWR from 'swr'
 import api from '@/lib/axios'
+
+const fetcher = url => api.get(url).then(res => res.data)
 
 const Sidebar = () => {
     const pathname = usePathname()
-    const [userRole, setUserRole] = useState(null)
+    const { data: me, error, isLoading } = useSWR('/api/auth/user', fetcher)
 
-    useEffect(() => {
-        const fetchUser = async () => {
-            try {
-                const res = await api.get('/api/auth/user')
-                setUserRole(res.data.role)
-            } catch (error) {
-                console.error(error)
-            }
-        }
-        fetchUser()
-    }, [])
+    const userRole = me?.role
 
     const menus = [
         { name: 'All Users', href: '/perpus/users', roles: ['admin'] },
@@ -26,6 +18,13 @@ const Sidebar = () => {
         { name: 'Loans', href: '/perpus/loans', roles: ['admin', 'user'] },
     ]
 
+    if (isLoading) {
+        return <div className="p-4">Loading menu...</div>
+    }
+
+    if (error) {
+        return <div className="p-4 text-red-500">Failed to load user</div>
+    }
 
     return (
         <div className="w-64 bg-gray-300 h-screen p-4 rounded-r-xl">

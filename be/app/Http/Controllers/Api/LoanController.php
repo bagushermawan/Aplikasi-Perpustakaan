@@ -9,14 +9,32 @@ use Illuminate\Http\Request;
 
 class LoanController extends Controller
 {
-    /**
-     * Tampilkan semua loan
-     */
     public function index()
     {
-        // Ambil data terbaru
-        $loans = Loan::with(['user', 'book'])->latest()->get();
-        return LoanResource::collection($loans);
+        $perPage = request('per_page', 5);
+        $search  = request('search');
+
+        $query = Loan::with(['user', 'book'])
+            ->join('users', 'loans.user_id', '=', 'users.id')
+            ->join('books', 'loans.book_id', '=', 'books.id')
+            ->select('loans.*');
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('users.name', 'like', "%{$search}%")
+                    ->orWhere('books.title', 'like', "%{$search}%")
+                    ->orWhere('status', 'like', "%{$search}%");
+            });
+        }
+
+        $query->orderBy('users.name', 'asc');
+
+        return LoanResource::collection(
+            $query->paginate($perPage)->appends([
+                'per_page' => $perPage,
+                'search'   => $search,
+            ])
+        );
     }
 
     /**

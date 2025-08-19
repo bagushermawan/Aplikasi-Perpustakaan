@@ -11,7 +11,24 @@ class BookController extends Controller
 {
     public function index()
     {
-        return BookResource::collection(Book::orderBy('title', 'asc')->get());
+        $perPage = request('per_page', 5);
+        $search  = request('search');
+
+        $query = Book::query()->orderBy('title', 'asc');
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('title', 'like', "%{$search}%")
+                    ->orWhere('author', 'like', "%{$search}%");
+            });
+        }
+
+        return BookResource::collection(
+            $query->paginate($perPage)->appends([
+                'per_page' => $perPage,
+                'search'   => $search,
+            ])
+        );
     }
 
     public function store(Request $request)

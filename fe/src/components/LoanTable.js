@@ -5,18 +5,41 @@ import useSWR from 'swr'
 import api from '@/lib/axios'
 import Select from 'react-select'
 
-const fetcher = url => api.get(url).then(res => res.data.data)
+const fetcher = url => api.get(url).then(res => res.data)
 
 export default function LoansTable() {
     const { data: users } = useSWR('/api/perpus/users', fetcher)
     const { data: books } = useSWR('/api/perpus/books', fetcher)
-    const { data: loans, error, mutate } = useSWR('/api/perpus/loans', fetcher)
+
     const [search, setSearch] = useState('')
+    const [debouncedSearch, setDebouncedSearch] = useState('')
+
     const [selectedLoan, setSelectedLoan] = useState(null)
     const [modalType, setModalType] = useState(null)
 
     const [isFocused, setIsFocused] = useState(false)
     const searchRef = useRef(null)
+    const [page, setPage] = useState(1)
+    const perPage = 5
+
+    const {
+        data: loansResp,
+        error,
+        mutate,
+        isValidating,
+    } = useSWR(
+        `/api/perpus/loans?page=${page}&per_page=${perPage}${
+            debouncedSearch
+                ? `&search=${encodeURIComponent(debouncedSearch)}`
+                : ''
+        }`,
+        fetcher,
+        {
+            keepPreviousData: true,
+            revalidateOnFocus: false,
+            dedupingInterval: 300,
+        },
+    )
 
     useEffect(() => {
         const handleKey = e => {
@@ -30,21 +53,27 @@ export default function LoansTable() {
         return () => window.removeEventListener('keydown', handleKey)
     }, [])
 
-    // Hilangkan blur kalau user ngetik
     useEffect(() => {
         if (search.length > 0) {
             setIsFocused(false)
         }
     }, [search])
 
-    if (error) return <div>Error loading loans</div>
-    if (!loans) return <div>Loading...</div>
+    useEffect(() => {
+        const t = setTimeout(() => setDebouncedSearch(search), 500)
+        return () => clearTimeout(t)
+    }, [search])
 
-    const filteredLoans = loans.filter(
-        l =>
-            l.user.name.toLowerCase().includes(search.toLowerCase()) ||
-            l.book.title.toLowerCase().includes(search.toLowerCase()),
-    )
+    useEffect(() => {
+        setPage(1)
+    }, [debouncedSearch])
+
+    if (error) return <div>Error loading loans</div>
+
+    const loans = loansResp?.data || []
+    const meta = loansResp?.meta || {}
+    const lastPage = meta.last_page || 1
+
     const handleDelete = async id => {
         if (!confirm('Yakin hapus loan ini?')) return
         await api.delete(`/api/perpus/loans/${id}`)
@@ -108,7 +137,7 @@ export default function LoansTable() {
                     </button>
                 </div>
 
-                {/* Table */}
+                {/* Loan Table */}
                 <div className="overflow-x-auto">
                     <table className="min-w-full border">
                         <thead>
@@ -123,27 +152,24 @@ export default function LoansTable() {
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredLoans.map((loan, index) => (
+                            {loans.map((loan, index) => (
                                 <tr key={loan.id} className="hover:bg-gray-50">
                                     <td className="p-2 border text-center">
-                                        {index + 1}
+                                        {(meta.from ??
+                                            (page - 1) * perPage + 1) + index}
                                     </td>
                                     <td className="p-2 border">
                                         {(() => {
                                             const name = loan.user.name
-                                            const searchTerm = search
+                                            const term = debouncedSearch
                                                 .trim()
                                                 .toLowerCase()
-                                            if (!searchTerm) return name
+                                            if (!term) return name
                                             const parts = name.split(
-                                                new RegExp(
-                                                    `(${searchTerm})`,
-                                                    'gi',
-                                                ),
+                                                new RegExp(`(${term})`, 'gi'),
                                             )
                                             return parts.map((part, idx) =>
-                                                part.toLowerCase() ===
-                                                searchTerm ? (
+                                                part.toLowerCase() === term ? (
                                                     <b
                                                         key={idx}
                                                         className="text-blue-600">
@@ -158,19 +184,15 @@ export default function LoansTable() {
                                     <td className="p-2 border">
                                         {(() => {
                                             const title = loan.book.title
-                                            const searchTerm = search
+                                            const term = debouncedSearch
                                                 .trim()
                                                 .toLowerCase()
-                                            if (!searchTerm) return title
+                                            if (!term) return title
                                             const parts = title.split(
-                                                new RegExp(
-                                                    `(${searchTerm})`,
-                                                    'gi',
-                                                ),
+                                                new RegExp(`(${term})`, 'gi'),
                                             )
                                             return parts.map((part, idx) =>
-                                                part.toLowerCase() ===
-                                                searchTerm ? (
+                                                part.toLowerCase() === term ? (
                                                     <b
                                                         key={idx}
                                                         className="text-blue-600">
@@ -213,6 +235,35 @@ export default function LoansTable() {
                             ))}
                         </tbody>
                     </table>
+                </div>
+
+                {/* Pagination */}
+                <div className="flex items-center justify-between mt-4">
+                    <button
+                        onClick={() => setPage(p => Math.max(1, p - 1))}
+                        disabled={page <= 1}
+                        className="px-3 py-1 border rounded bg-blue-200 hover:bg-blue-300 disabled:opacity-50">
+                        Prev
+                    </button>
+                    {isValidating ? (
+                        <span className="text-sm text-gray-500">
+                            Searching…
+                        </span>
+                    ) : (
+                        <span>
+                            Page {meta.current_page || 1} of{' '}
+                            {meta.last_page || 1}{' '}
+                            <span className="text-gray-500">
+                                (Total: {meta.total})
+                            </span>
+                        </span>
+                    )}
+                    <button
+                        onClick={() => setPage(p => Math.min(lastPage, p + 1))}
+                        disabled={page >= lastPage}
+                        className="px-3 py-1 border rounded bg-blue-200 hover:bg-blue-300 disabled:opacity-50">
+                        Next
+                    </button>
                 </div>
 
                 {/* Modal Add */}

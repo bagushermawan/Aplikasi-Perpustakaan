@@ -3,18 +3,40 @@ import { useState, useEffect, useRef } from 'react'
 import useSWR from 'swr'
 import api from '@/lib/axios'
 
-const fetcher = url => api.get(url).then(res => res.data.data)
+const fetcher = url => api.get(url).then(res => res.data)
 
 export default function AllBooksPage() {
-    const { data: books, error, mutate } = useSWR('/api/perpus/books', fetcher)
     const [search, setSearch] = useState('')
     const [selectedBook, setSelectedBook] = useState(null)
     const [modalType, setModalType] = useState(null)
     const [user, setUser] = useState(null)
     const [selectedLoan, setSelectedLoan] = useState(null)
+    const [debouncedSearch, setDebouncedSearch] = useState('')
 
     const [isFocused, setIsFocused] = useState(false)
     const searchRef = useRef(null)
+
+    const [page, setPage] = useState(1)
+    const perPage = 5
+
+    const {
+        data: booksResp,
+        error,
+        mutate,
+        isValidating,
+    } = useSWR(
+        `/api/perpus/books?page=${page}&per_page=${perPage}${
+            debouncedSearch
+                ? `&search=${encodeURIComponent(debouncedSearch)}`
+                : ''
+        }`,
+        fetcher,
+        {
+            keepPreviousData: true,
+            revalidateOnFocus: false,
+            dedupingInterval: 300,
+        },
+    )
 
     useEffect(() => {
         api.get('/api/auth/user').then(res => setUser(res.data))
@@ -32,19 +54,26 @@ export default function AllBooksPage() {
         return () => window.removeEventListener('keydown', handleKey)
     }, [])
 
-    // Hilangkan blur kalau user ngetik
     useEffect(() => {
         if (search.length > 0) {
             setIsFocused(false)
         }
     }, [search])
 
-    if (error) return <div>Error loading books</div>
-    if (!books) return <div>Loading...</div>
+    useEffect(() => {
+        const t = setTimeout(() => setDebouncedSearch(search), 500)
+        return () => clearTimeout(t)
+    }, [search])
 
-    const filteredBooks = books.filter(b =>
-        b.title.toLowerCase().includes(search.toLowerCase()),
-    )
+    useEffect(() => {
+        setPage(1)
+    }, [debouncedSearch])
+
+    if (error) return <div>Error loading books</div>
+
+    const books = booksResp?.data || []
+    const meta = booksResp?.meta || {}
+    const lastPage = meta.last_page || 1
 
     // --- Admin Book Handlers ---
     const handleAdd = async e => {
@@ -99,7 +128,6 @@ export default function AllBooksPage() {
                         onChange={e => setSearch(e.target.value)}
                         onFocus={() => setIsFocused(true)}
                         onBlur={() => {
-                            // kalau blur manual & kosong → reset
                             if (search.length === 0) setIsFocused(false)
                         }}
                         className={`px-3 py-2 border rounded relative z-20 ${
@@ -121,6 +149,9 @@ export default function AllBooksPage() {
                         </button>
                     )}
                 </div>
+                {isValidating && booksResp && (
+                    <div className="text-xs text-gray-500 mb-3">Searching…</div>
+                )}
 
                 {/* Book Table */}
                 <div className="overflow-x-auto">
@@ -138,15 +169,16 @@ export default function AllBooksPage() {
                             </tr>
                         </thead>
                         <tbody>
-                            {filteredBooks.map((book, index) => (
+                            {books.map((book, index) => (
                                 <tr key={book.id} className="hover:bg-gray-50">
                                     <td className="p-2 border text-center">
-                                        {index + 1}
+                                        {(meta.from ??
+                                            (page - 1) * perPage + 1) + index}
                                     </td>
                                     <td className="p-2 border">
                                         {(() => {
                                             const title = book.title
-                                            const searchTerm = search
+                                            const searchTerm = debouncedSearch
                                                 .trim()
                                                 .toLowerCase()
                                             if (!searchTerm) return title
@@ -175,12 +207,26 @@ export default function AllBooksPage() {
                                     </td>
                                     {user?.role === 'admin' && (
                                         <td className="p-2 border text-center">
-                                            {book.stock} (borrowed{' '}
-                                            {book.borrowed})
+                                            <span className="font-bold">
+                                                {book.stock}
+                                            </span>{' '}
+                                            {book.borrowed > 0 && (
+                                                <span className="text-gray-500">
+                                                    (borrowed {book.borrowed})
+                                                </span>
+                                            )}
                                         </td>
                                     )}
                                     <td className="p-2 border text-center">
-                                        {book.available}
+                                        {book.available === book.stock ? (
+                                            <span className="font-bold">
+                                                All
+                                            </span>
+                                        ) : (
+                                            <span className="font-bold">
+                                                {book.available}
+                                            </span>
+                                        )}
                                     </td>
                                     <td className="p-2 border space-x-2 text-center">
                                         {user?.role === 'admin' && (
@@ -190,7 +236,7 @@ export default function AllBooksPage() {
                                                         setSelectedBook(book)
                                                         setModalType('edit')
                                                     }}
-                                                    className="px-3 py-1 bg-blue-500 text-white rounded">
+                                                    className="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded">
                                                     Edit
                                                 </button>
                                                 <button
@@ -198,7 +244,7 @@ export default function AllBooksPage() {
                                                         setSelectedBook(book)
                                                         setModalType('delete')
                                                     }}
-                                                    className="px-3 py-1 bg-red-500 text-white rounded">
+                                                    className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded">
                                                     Delete
                                                 </button>
                                             </>
@@ -239,6 +285,35 @@ export default function AllBooksPage() {
                             ))}
                         </tbody>
                     </table>
+                </div>
+
+                {/* Pagination */}
+                <div className="flex items-center justify-between mt-4">
+                    <button
+                        onClick={() => setPage(p => Math.max(1, p - 1))}
+                        disabled={page <= 1}
+                        className="px-3 py-1 border rounded bg-blue-200 hover:bg-blue-300 disabled:opacity-50">
+                        Prev
+                    </button>
+                    {isValidating ? (
+                        <span className="text-sm text-gray-500">
+                            Searching…
+                        </span>
+                    ) : (
+                        <span>
+                            Page {meta.current_page || 1} of{' '}
+                            {meta.last_page || 1}{' '}
+                            <span className="text-gray-500">
+                                (Total: {meta.total})
+                            </span>
+                        </span>
+                    )}
+                    <button
+                        onClick={() => setPage(p => Math.min(lastPage, p + 1))}
+                        disabled={page >= lastPage}
+                        className="px-3 py-1 border rounded bg-blue-200 hover:bg-blue-300 disabled:opacity-50">
+                        Next
+                    </button>
                 </div>
 
                 {/* --- Modals --- */}

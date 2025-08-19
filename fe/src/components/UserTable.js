@@ -1,23 +1,79 @@
 'use client'
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import useSWR from 'swr'
 import api from '@/lib/axios'
 
-const fetcher = url => api.get(url).then(res => res.data.data)
+const fetcher = url => api.get(url).then(res => res.data)
 
 export default function AllUsersPage() {
-    const { data: users, error, mutate } = useSWR('/api/perpus/users', fetcher)
     const [search, setSearch] = useState('')
+    const [debouncedSearch, setDebouncedSearch] = useState('')
+
     const [selectedUser, setSelectedUser] = useState(null)
     const [modalType, setModalType] = useState(null)
 
-    if (error) return <div>Error loading users</div>
-    if (!users) return <div>Loading...</div>
+    const [isFocused, setIsFocused] = useState(false)
+    const searchRef = useRef(null)
 
-    const filteredUsers = users.filter(u =>
-        u.name.toLowerCase().includes(search.toLowerCase()),
+    const [page, setPage] = useState(1)
+    const perPage = 3
+
+    const {
+        data: usersResp,
+        error,
+        mutate,
+        isValidating,
+    } = useSWR(
+        `/api/perpus/users?page=${page}&per_page=${perPage}${
+            debouncedSearch
+                ? `&search=${encodeURIComponent(debouncedSearch)}`
+                : ''
+        }`,
+        fetcher,
+        {
+            keepPreviousData: true,
+            revalidateOnFocus: false,
+            dedupingInterval: 300,
+        },
     )
 
+    // ─── Events ─────────────────────────────────────────────
+    useEffect(() => {
+        const handleKey = e => {
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+                e.preventDefault()
+                setIsFocused(true)
+                searchRef.current?.focus()
+            }
+        }
+        window.addEventListener('keydown', handleKey)
+        return () => window.removeEventListener('keydown', handleKey)
+    }, [])
+
+    // overlay fokus
+    useEffect(() => {
+        if (search.length > 0) setIsFocused(false)
+    }, [search])
+
+    // Debounce
+    useEffect(() => {
+        const t = setTimeout(() => setDebouncedSearch(search), 500)
+        return () => clearTimeout(t)
+    }, [search])
+
+    // reset paging saat keyword berubah
+    useEffect(() => {
+        setPage(1)
+    }, [debouncedSearch])
+
+    // ─── Data helpers ───────────────────────────────────────
+    if (error) return <div>Error loading users</div>
+
+    const users = usersResp?.data || []
+    const meta = usersResp?.meta || {}
+    const lastPage = meta.last_page || 1
+
+    // ─── Handlers ───────────────────────────────────────────
     const handleDelete = async id => {
         if (!confirm('Yakin hapus user ini?')) return
         await api.delete(`/api/perpus/users/${id}`)
@@ -39,24 +95,31 @@ export default function AllUsersPage() {
         setModalType(null)
     }
 
+    // ─── Render ─────────────────────────────────────────────
     return (
-        <div className="p-6">
+        <div className="relative">
+            {isFocused && search.length === 0 && (
+                <div className="fixed inset-0 backdrop-blur-sm bg-black/30 z-10"></div>
+            )}
             <h1 className="text-2xl font-bold mb-4">All Users</h1>
 
+            {/* Search + Add */}
             <div className="grid grid-cols-6 gap-2 mb-4">
-                {/* Search */}
                 <input
+                    ref={searchRef}
                     type="text"
-                    placeholder="Cari user..."
+                    placeholder="Cari user... (Ctrl+K)"
                     value={search}
                     onChange={e => setSearch(e.target.value)}
-                    className="px-3 py-2 border rounded col-span-5"
+                    onFocus={() => setIsFocused(true)}
+                    onBlur={() => {
+                        if (search.length === 0) setIsFocused(false)
+                    }}
+                    className="px-3 py-2 border rounded col-span-5 relative z-20"
                 />
-
-                {/* Add User */}
                 <button
                     onClick={() => {
-                        setSelectedUser({ name: '', email: '' }) // kosongkan form
+                        setSelectedUser({ name: '', email: '', password: '' }) // 👈 isi semua field
                         setModalType('add')
                     }}
                     className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 w-full">
@@ -76,13 +139,58 @@ export default function AllUsersPage() {
                         </tr>
                     </thead>
                     <tbody>
-                        {filteredUsers.map((user, index) => (
+                        {users.map((user, index) => (
                             <tr key={user.id} className="hover:bg-gray-50">
                                 <td className="p-2 border text-center">
-                                    {index + 1}
+                                    {(meta.from ?? (page - 1) * perPage + 1) +
+                                        index}
                                 </td>
-                                <td className="p-2 border">{user.name}</td>
-                                <td className="p-2 border">{user.email}</td>
+                                <td className="p-2 border">
+                                    {(() => {
+                                        const name = user.name
+                                        const term = debouncedSearch
+                                            .trim()
+                                            .toLowerCase()
+                                        if (!term) return name
+                                        const parts = name.split(
+                                            new RegExp(`(${term})`, 'gi'),
+                                        )
+                                        return parts.map((part, idx) =>
+                                            part.toLowerCase() === term ? (
+                                                <b
+                                                    key={idx}
+                                                    className="text-blue-600">
+                                                    {part}
+                                                </b>
+                                            ) : (
+                                                part
+                                            ),
+                                        )
+                                    })()}
+                                </td>
+                                <td className="p-2 border">
+                                    {(() => {
+                                        const email = user.email
+                                        const term = debouncedSearch
+                                            .trim()
+                                            .toLowerCase()
+                                        if (!term) return email
+                                        const parts = email.split(
+                                            new RegExp(`(${term})`, 'gi'),
+                                        )
+                                        return parts.map((part, idx) =>
+                                            part.toLowerCase() === term ? (
+                                                <b
+                                                    key={idx}
+                                                    className="text-blue-600">
+                                                    {part}
+                                                </b>
+                                            ) : (
+                                                part
+                                            ),
+                                        )
+                                    })()}
+                                </td>
                                 <td className="p-2 border space-x-2 text-center">
                                     <button
                                         onClick={() => {
@@ -105,6 +213,32 @@ export default function AllUsersPage() {
                         ))}
                     </tbody>
                 </table>
+            </div>
+
+            {/* Pagination */}
+            <div className="flex items-center justify-between mt-4">
+                <button
+                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                    disabled={page <= 1}
+                    className="px-3 py-1 border rounded bg-blue-200 hover:bg-blue-300 disabled:opacity-50">
+                    Prev
+                </button>
+                {isValidating ? (
+                    <span className="text-sm text-gray-500">Searching…</span>
+                ) : (
+                    <span>
+                        Page {meta.current_page || 1} of {meta.last_page || 1}{' '}
+                        <span className="text-gray-500">
+                            (Total: {meta.total})
+                        </span>
+                    </span>
+                )}
+                <button
+                    onClick={() => setPage(p => Math.min(lastPage, p + 1))}
+                    disabled={page >= lastPage}
+                    className="px-3 py-1 border rounded bg-blue-200 hover:bg-blue-300 disabled:opacity-50">
+                    Next
+                </button>
             </div>
 
             {/* Modal Add */}
@@ -222,7 +356,7 @@ export default function AllUsersPage() {
                     <div className="bg-white p-6 rounded shadow-md w-80">
                         <h2 className="text-lg font-bold mb-4">Hapus User?</h2>
                         <p>
-                            Yakin mau hapus user: <b>{selectedUser.name}?</b>
+                            Yakin mau hapus user: <b>{selectedUser.name}</b>?
                         </p>
                         <div className="flex justify-end space-x-2 mt-4">
                             <button
