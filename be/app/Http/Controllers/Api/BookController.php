@@ -11,7 +11,7 @@ class BookController extends Controller
 {
     public function index()
     {
-        return BookResource::collection(Book::latest()->get());
+        return BookResource::collection(Book::orderBy('title', 'asc')->get());
     }
 
     public function store(Request $request)

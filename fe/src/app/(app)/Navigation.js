@@ -8,13 +8,20 @@ import ResponsiveNavLink, {
 import { DropdownButton } from '@/components/DropdownLink'
 import { useAuth } from '@/hooks/auth'
 import { usePathname } from 'next/navigation'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import api from '@/lib/axios'
 
 const Navigation = ({ user }) => {
     const { logout } = useAuth()
     const { editProfile } = useAuth()
 
     const [open, setOpen] = useState(false)
+
+    const [userRole, setUserRole] = useState(null)
+
+    useEffect(() => {
+        api.get('/api/auth/user').then(res => setUserRole(res.data))
+    }, [])
 
     return (
         <nav className="bg-white border-b border-gray-100">
@@ -34,15 +41,17 @@ const Navigation = ({ user }) => {
                             <NavLink href="/dashboard" exact>
                                 Dashboard
                             </NavLink>
-                            <NavLink href="/roles" exact>
-                                Roles
-                            </NavLink>
-                            <NavLink href="/permissions" exact>
-                                Permissions
-                            </NavLink>
-                            <NavLink href="/perpus">
-                                Perpus
-                            </NavLink>
+                            {userRole?.role === 'admin' && (
+                                <NavLink href="/roles" exact>
+                                    Roles
+                                </NavLink>
+                            )}
+                            {userRole?.role === 'admin' && (
+                                <NavLink href="/permissions" exact>
+                                    Permissions
+                                </NavLink>
+                            )}
+                            <NavLink href="/perpus">Perpus</NavLink>
                         </div>
                     </div>
 

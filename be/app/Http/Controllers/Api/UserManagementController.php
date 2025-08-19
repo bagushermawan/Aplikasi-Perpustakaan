@@ -2,16 +2,17 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Http\Resources\UserResource;
 use Illuminate\Http\Request;
+use App\Http\Controllers\Controller;
+use App\Http\Resources\UserResource;
+use Illuminate\Support\Facades\Hash;
 
 class UserManagementController extends Controller
 {
     public function index()
     {
-        return UserResource::collection(User::latest()->get());
+        return UserResource::collection(User::orderBy('name', 'asc')->get());
     }
 
     public function store(Request $request)
@@ -19,14 +20,17 @@ class UserManagementController extends Controller
         $data = $request->validate([
             'name'     => 'required|string|max:255',
             'email'    => 'required|email|unique:users,email',
-            'password' => 'required|string|min:6',
+            'password' => 'required|string|min:3',
         ]);
 
-        $data['password'] = bcrypt($data['password']);
+        $data['password'] = Hash::make($data['password']);
 
         $user = User::create($data);
+        $user->assignRole('user');
 
-        return new UserResource($user);
+        return (new UserResource($user))
+            ->response()
+            ->setStatusCode(201);
     }
 
     public function show(User $user)
@@ -39,11 +43,11 @@ class UserManagementController extends Controller
         $data = $request->validate([
             'name'  => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,' . $user->id,
-            'password' => 'nullable|string|min:6',
+            'password' => 'nullable|string|min:3',
         ]);
 
         if (!empty($data['password'])) {
-            $data['password'] = bcrypt($data['password']);
+            $data['password'] = Hash::make($data['password']);
         } else {
             unset($data['password']);
         }

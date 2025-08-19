@@ -13,6 +13,15 @@ Route::middleware(['auth:sanctum'])->get('/user', function (Request $request) {
     return $request->user();
 });
 
+Route::middleware('auth:sanctum')->get('/auth/user', function (Request $request) {
+    return response()->json([
+        'id' => $request->user()->id,
+        'name' => $request->user()->name,
+        'email' => $request->user()->email,
+        'role' => $request->user()->getRoleNames()->first(),
+    ]);
+});
+
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user/profile', [UserController::class, 'show']);
     Route::put('/user/profile', [UserController::class, 'update']);
@@ -23,7 +32,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::apiResource('permissions', PermissionController::class);
 });
 
-Route::prefix('perpus')->middleware(['auth:sanctum'])->group(function () {
+Route::prefix('perpus')->middleware(['auth:sanctum', 'role:admin|user'])->group(function () {
     Route::apiResource('users', UserManagementController::class);
     Route::apiResource('books', BookController::class);
     Route::apiResource('loans', LoanController::class);

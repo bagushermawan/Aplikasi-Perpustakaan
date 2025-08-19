@@ -32,37 +32,58 @@ export default function AllUsersPage() {
         setModalType(null)
     }
 
+    const handleAdd = async e => {
+        e.preventDefault()
+        await api.post(`/api/perpus/users`, selectedUser)
+        mutate()
+        setModalType(null)
+    }
+
     return (
         <div className="p-6">
             <h1 className="text-2xl font-bold mb-4">All Users</h1>
 
-            {/* Search */}
-            <input
-                type="text"
-                placeholder="Cari user..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                className="mb-4 p-2 border rounded w-full"
-            />
+            <div className="grid grid-cols-6 gap-2 mb-4">
+                {/* Search */}
+                <input
+                    type="text"
+                    placeholder="Cari user..."
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    className="px-3 py-2 border rounded col-span-5"
+                />
+
+                {/* Add User */}
+                <button
+                    onClick={() => {
+                        setSelectedUser({ name: '', email: '' }) // kosongkan form
+                        setModalType('add')
+                    }}
+                    className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 w-full">
+                    Add User
+                </button>
+            </div>
 
             {/* Table */}
             <div className="overflow-x-auto">
                 <table className="min-w-full border">
                     <thead>
                         <tr className="bg-gray-100">
-                            <th className="p-2 border">ID</th>
+                            <th className="p-2 border">No</th>
                             <th className="p-2 border">Name</th>
                             <th className="p-2 border">Email</th>
                             <th className="p-2 border">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {filteredUsers.map(user => (
+                        {filteredUsers.map((user, index) => (
                             <tr key={user.id} className="hover:bg-gray-50">
-                                <td className="p-2 border">{user.id}</td>
+                                <td className="p-2 border text-center">
+                                    {index + 1}
+                                </td>
                                 <td className="p-2 border">{user.name}</td>
                                 <td className="p-2 border">{user.email}</td>
-                                <td className="p-2 border space-x-2">
+                                <td className="p-2 border space-x-2 text-center">
                                     <button
                                         onClick={() => {
                                             setSelectedUser(user)
@@ -85,6 +106,69 @@ export default function AllUsersPage() {
                     </tbody>
                 </table>
             </div>
+
+            {/* Modal Add */}
+            {modalType === 'add' && selectedUser && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                    <div className="bg-white p-6 rounded shadow-md w-96">
+                        <h2 className="text-lg font-bold mb-4">Add User</h2>
+                        <form onSubmit={handleAdd} className="space-y-3">
+                            <input
+                                type="text"
+                                placeholder="Name"
+                                value={selectedUser.name}
+                                onChange={e =>
+                                    setSelectedUser({
+                                        ...selectedUser,
+                                        name: e.target.value,
+                                    })
+                                }
+                                className="w-full border p-2 rounded"
+                                required
+                            />
+                            <input
+                                type="email"
+                                placeholder="Email"
+                                value={selectedUser.email}
+                                onChange={e =>
+                                    setSelectedUser({
+                                        ...selectedUser,
+                                        email: e.target.value,
+                                    })
+                                }
+                                className="w-full border p-2 rounded"
+                                required
+                            />
+                            <input
+                                type="password"
+                                placeholder="Password"
+                                value={selectedUser.password}
+                                onChange={e =>
+                                    setSelectedUser({
+                                        ...selectedUser,
+                                        password: e.target.value,
+                                    })
+                                }
+                                className="w-full border p-2 rounded"
+                                required
+                            />
+                            <div className="flex justify-end space-x-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setModalType(null)}
+                                    className="px-3 py-1 bg-gray-400 text-white rounded">
+                                    Batal
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="px-3 py-1 bg-green-600 text-white rounded">
+                                    Simpan
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
 
             {/* Modal Edit */}
             {modalType === 'edit' && selectedUser && (
@@ -137,7 +221,9 @@ export default function AllUsersPage() {
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
                     <div className="bg-white p-6 rounded shadow-md w-80">
                         <h2 className="text-lg font-bold mb-4">Hapus User?</h2>
-                        <p>Yakin mau hapus user: {selectedUser.name}?</p>
+                        <p>
+                            Yakin mau hapus user: <b>{selectedUser.name}?</b>
+                        </p>
                         <div className="flex justify-end space-x-2 mt-4">
                             <button
                                 onClick={() => setModalType(null)}

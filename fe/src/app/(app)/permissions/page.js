@@ -155,7 +155,7 @@ const PermissionsPage = () => {
                                             {/* <td className="py-2 px-4 border-b">
                                                 {permission.guard_name}
                                             </td> */}
-                                            <td className="py-2 px-4 border-b space-x-2">
+                                            <td className="py-2 px-4 border-b space-x-2 text-center">
                                                 <button
                                                     onClick={() =>
                                                         openEditModal(permission)
