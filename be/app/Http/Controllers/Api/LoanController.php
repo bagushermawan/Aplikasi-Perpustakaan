@@ -14,16 +14,20 @@ class LoanController extends Controller
         $perPage = request('per_page', 5);
         $search  = request('search');
         $userId  = request('user_id');
+        $sortBy  = request('sort_by');
+        $sortDir = request('sort_dir', 'asc');
 
         $query = Loan::with(['user', 'book'])
             ->join('users', 'loans.user_id', '=', 'users.id')
             ->join('books', 'loans.book_id', '=', 'books.id')
             ->select('loans.*');
 
+        // Filter by user
         if ($userId) {
             $query->where('loans.user_id', $userId);
         }
 
+        // Filter search
         if ($search) {
             $query->where(function ($q) use ($search) {
                 $q->where('users.name', 'like', "%{$search}%")
@@ -32,11 +36,26 @@ class LoanController extends Controller
             });
         }
 
+        // Filter by status
         if ($status = request('status')) {
-            $query->where('status', $status);
+            $query->where('loans.status', $status);
         }
 
-        $query->orderBy('loans.created_at', 'desc');
+        // Sorting (whitelist kolom yg boleh)
+        $allowedSorts = [
+            'users.name',
+            'books.title',
+            'loans.status',
+            'loans.borrowed_at',
+            'loans.return_date',
+        ];
+
+        if ($sortBy && in_array($sortBy, $allowedSorts)) {
+            $query->orderBy($sortBy, $sortDir);
+        } else {
+            // default sort (kalau tidak ada sort khusus)
+            $query->orderBy('loans.created_at', 'desc');
+        }
 
         return LoanResource::collection(
             $query->paginate($perPage)->appends(request()->all())
