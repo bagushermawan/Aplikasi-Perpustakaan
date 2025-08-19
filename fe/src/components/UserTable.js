@@ -16,7 +16,7 @@ export default function AllUsersPage() {
     const searchRef = useRef(null)
 
     const [page, setPage] = useState(1)
-    const perPage = 3
+const perPage = 5
 
     const {
         data: usersResp,
@@ -57,7 +57,7 @@ export default function AllUsersPage() {
 
     // Debounce
     useEffect(() => {
-        const t = setTimeout(() => setDebouncedSearch(search), 500)
+        const t = setTimeout(() => setDebouncedSearch(search), 300)
         return () => clearTimeout(t)
     }, [search])
 

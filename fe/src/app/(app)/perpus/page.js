@@ -6,6 +6,13 @@ import api from '@/lib/axios'
 import { FaUsers, FaBook, FaClipboardList, FaBookReader } from 'react-icons/fa'
 
 const PerpusPage = () => {
+    const [currentUser, setCurrentUser] = useState(null)
+
+    useEffect(() => {
+        api.get('/api/auth/user')
+            .then(res => setCurrentUser(res.data))
+            .catch(err => console.error(err))
+    }, [])
     const [stats, setStats] = useState({
         users: 0,
         books: 0,
@@ -20,14 +27,22 @@ const PerpusPage = () => {
                 const booksRes = await api.get('/api/perpus/books')
                 const loansRes = await api.get('/api/perpus/loans')
 
-                const borrowedBooksCount = loansRes.data.data.filter(
-                    loan => loan.status === 'borrowed',
-                ).length
+                // total pakai meta.total
+                const totalUsers = usersRes.data.meta.total
+                const totalBooks = booksRes.data.meta.total
+                const totalLoans = loansRes.data.meta.total
+
+                // hitung loans yg status borrowed dari item yg sudah difetch
+                // NOTE: ini hanya dari satu halaman. Kalau mau global, backend sebaiknya punya endpoint khusus.
+                const borrowedRes = await api.get(
+                    '/api/perpus/loans?status=borrowed',
+                )
+                const borrowedBooksCount = borrowedRes.data.meta.total
 
                 setStats({
-                    users: usersRes.data.data.length,
-                    books: booksRes.data.data.length,
-                    loans: loansRes.data.data.length,
+                    users: totalUsers,
+                    books: totalBooks,
+                    loans: totalLoans,
                     borrowedBooks: borrowedBooksCount,
                 })
             } catch (error) {
@@ -51,19 +66,21 @@ const PerpusPage = () => {
                         Dashboard Perpustakaan
                     </h1>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:[grid-template-columns:repeat(auto-fit,minmax(200px,1fr))]">
                         {/* Total Users */}
-                        <div className="bg-blue-500 text-white rounded-lg p-6 shadow flex items-center">
-                            <FaUsers className="text-4xl mr-4" />
-                            <div>
-                                <h2 className="text-lg font-semibold">
-                                    Total Users
-                                </h2>
-                                <p className="mt-2 text-3xl font-bold">
-                                    {stats.users}
-                                </p>
+                        {currentUser?.role === 'admin' && (
+                            <div className="bg-blue-500 text-white rounded-lg p-6 shadow flex items-center">
+                                <FaUsers className="text-4xl mr-4" />
+                                <div>
+                                    <h2 className="text-lg font-semibold">
+                                        Total Users
+                                    </h2>
+                                    <p className="mt-2 text-3xl font-bold">
+                                        {stats.users}
+                                    </p>
+                                </div>
                             </div>
-                        </div>
+                        )}
 
                         {/* Total Books */}
                         <div className="bg-green-500 text-white rounded-lg p-6 shadow flex items-center">
@@ -110,11 +127,20 @@ const PerpusPage = () => {
                         <h2 className="text-xl font-bold mb-2">
                             Selamat Datang!
                         </h2>
-                        <p>
-                            Ini adalah dashboard perpustakaan. Kamu bisa melihat
-                            jumlah user, jumlah buku, pinjaman aktif, dan
-                            statistik lainnya di sini.
-                        </p>
+                        {currentUser?.role === 'admin' && (
+                            <p>
+                                Ini adalah dashboard perpustakaan. Kamu bisa
+                                melihat jumlah user, jumlah buku, pinjaman
+                                aktif, dan statistik lainnya di sini.
+                            </p>
+                        )}
+                        {currentUser?.role === 'user' && (
+                            <p>
+                                Ini adalah dashboard perpustakaan. Kamu bisa
+                                melihat jumlah buku, pinjaman aktif, dan
+                                statistik lainnya di sini.
+                            </p>
+                        )}
                     </div>
                 </div>
             </div>

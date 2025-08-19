@@ -4,12 +4,20 @@ import { useState, useRef, useEffect } from 'react'
 import useSWR from 'swr'
 import api from '@/lib/axios'
 import Select from 'react-select'
+import {
+    HiMiniArrowsUpDown,
+    HiMiniArrowSmallUp,
+    HiMiniArrowSmallDown,
+} from 'react-icons/hi2'
 
 const fetcher = url => api.get(url).then(res => res.data)
 
 export default function LoansTable() {
-    const { data: users } = useSWR('/api/perpus/users', fetcher)
-    const { data: books } = useSWR('/api/perpus/books', fetcher)
+    const { data: users = [] } = useSWR('/api/perpus/users/all', fetcher)
+    const { data: books = [] } = useSWR('/api/perpus/books/all', fetcher)
+
+    const [sortBy, setSortBy] = useState('loans.created_at')
+    const [sortDir, setSortDir] = useState('null')
 
     const [search, setSearch] = useState('')
     const [debouncedSearch, setDebouncedSearch] = useState('')
@@ -32,7 +40,7 @@ export default function LoansTable() {
             debouncedSearch
                 ? `&search=${encodeURIComponent(debouncedSearch)}`
                 : ''
-        }`,
+        }${sortBy && sortDir ? `&sort_by=${sortBy}&sort_dir=${sortDir}` : ''}`,
         fetcher,
         {
             keepPreviousData: true,
@@ -41,6 +49,22 @@ export default function LoansTable() {
         },
     )
 
+    const toggleSort = column => {
+        if (sortBy !== column) {
+            // 1st click → set asc
+            setSortBy(column)
+            setSortDir('asc')
+        } else if (sortDir === 'asc') {
+            // 2nd click → set desc
+            setSortDir('desc')
+        } else if (sortDir === 'desc') {
+            // 3rd click → reset
+            setSortBy(null)
+            setSortDir(null)
+        }
+    }
+
+    // shortcut CTRL+K fokus ke search
     useEffect(() => {
         const handleKey = e => {
             if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
@@ -60,7 +84,7 @@ export default function LoansTable() {
     }, [search])
 
     useEffect(() => {
-        const t = setTimeout(() => setDebouncedSearch(search), 500)
+        const t = setTimeout(() => setDebouncedSearch(search), 300)
         return () => clearTimeout(t)
     }, [search])
 
@@ -90,7 +114,6 @@ export default function LoansTable() {
 
     const handleAdd = async e => {
         e.preventDefault()
-        console.log(selectedLoan)
         await api.post(`/api/perpus/loans`, selectedLoan)
         mutate()
         setModalType(null)
@@ -106,8 +129,8 @@ export default function LoansTable() {
             <div className="p-6">
                 <h1 className="text-2xl font-bold mb-4">All Loans</h1>
 
+                {/* Search + Add */}
                 <div className="grid grid-cols-6 gap-2 mb-4">
-                    {/* Search */}
                     <input
                         ref={searchRef}
                         type="text"
@@ -120,7 +143,6 @@ export default function LoansTable() {
                         }}
                         className="px-3 py-2 border rounded col-span-5 relative z-20"
                     />
-                    {/* Add Loan */}
                     <button
                         onClick={() => {
                             setSelectedLoan({
@@ -128,7 +150,7 @@ export default function LoansTable() {
                                 book_id: '',
                                 borrowed_at: '',
                                 return_date: '',
-                                status: 'available',
+                                status: 'borrowed',
                             })
                             setModalType('add')
                         }}
@@ -137,17 +159,86 @@ export default function LoansTable() {
                     </button>
                 </div>
 
-                {/* Loan Table */}
+                {/* Table */}
                 <div className="overflow-x-auto">
                     <table className="min-w-full border">
                         <thead>
                             <tr className="bg-gray-100">
                                 <th className="p-2 border">No</th>
-                                <th className="p-2 border">User</th>
-                                <th className="p-2 border">Book</th>
+                                <th
+                                    className="p-2 border cursor-pointer select-none"
+                                    onClick={() => toggleSort('users.name')}>
+                                    <div className="flex items-center justify-center gap-1">
+                                        <span>User</span>
+                                        {sortBy !== 'users.name' && (
+                                            <span>
+                                                <HiMiniArrowsUpDown />
+                                            </span>
+                                        )}
+                                        {sortBy === 'users.name' &&
+                                            sortDir === 'asc' && (
+                                                <span>
+                                                    <HiMiniArrowSmallUp />
+                                                </span>
+                                            )}
+                                        {sortBy === 'users.name' &&
+                                            sortDir === 'desc' && (
+                                                <span>
+                                                    <HiMiniArrowSmallDown />
+                                                </span>
+                                            )}
+                                    </div>
+                                </th>
+                                <th
+                                    className="p-2 border cursor-pointer select-none"
+                                    onClick={() => toggleSort('books.title')}>
+                                    <div className="flex items-center justify-center gap-1">
+                                        <span>Book</span>
+                                        {sortBy !== 'books.title' && (
+                                            <span>
+                                                <HiMiniArrowsUpDown />
+                                            </span>
+                                        )}
+                                        {sortBy === 'books.title' &&
+                                            sortDir === 'asc' && (
+                                                <span>
+                                                    <HiMiniArrowSmallUp />
+                                                </span>
+                                            )}
+                                        {sortBy === 'books.title' &&
+                                            sortDir === 'desc' && (
+                                                <span>
+                                                    <HiMiniArrowSmallDown />
+                                                </span>
+                                            )}
+                                    </div>
+                                </th>
                                 <th className="p-2 border">Borrowed At</th>
                                 <th className="p-2 border">Return Date</th>
-                                <th className="p-2 border">Status</th>
+                                <th
+                                    className="p-2 border cursor-pointer select-none"
+                                    onClick={() => toggleSort('loans.status')}>
+                                    <div className="flex items-center justify-center gap-1">
+                                        <span>Status </span>
+                                        {sortBy !== 'loans.status' && (
+                                            <span>
+                                                <HiMiniArrowsUpDown />
+                                            </span>
+                                        )}
+                                        {sortBy === 'loans.status' &&
+                                            sortDir === 'asc' && (
+                                                <span>
+                                                    <HiMiniArrowSmallUp />
+                                                </span>
+                                            )}
+                                        {sortBy === 'loans.status' &&
+                                            sortDir === 'desc' && (
+                                                <span>
+                                                    <HiMiniArrowSmallDown />
+                                                </span>
+                                            )}
+                                    </div>
+                                </th>
                                 <th className="p-2 border">Actions</th>
                             </tr>
                         </thead>
@@ -158,9 +249,10 @@ export default function LoansTable() {
                                         {(meta.from ??
                                             (page - 1) * perPage + 1) + index}
                                     </td>
+                                    {/* User */}
                                     <td className="p-2 border">
                                         {(() => {
-                                            const name = loan.user.name
+                                            const name = loan.user?.name || ''
                                             const term = debouncedSearch
                                                 .trim()
                                                 .toLowerCase()
@@ -181,9 +273,10 @@ export default function LoansTable() {
                                             )
                                         })()}
                                     </td>
+                                    {/* Book */}
                                     <td className="p-2 border">
                                         {(() => {
-                                            const title = loan.book.title
+                                            const title = loan.book?.title || ''
                                             const term = debouncedSearch
                                                 .trim()
                                                 .toLowerCase()
@@ -216,7 +309,11 @@ export default function LoansTable() {
                                     <td className="p-2 border space-x-2 text-center">
                                         <button
                                             onClick={() => {
-                                                setSelectedLoan(loan)
+                                                setSelectedLoan({
+                                                    ...loan,
+                                                    user_id: loan.user?.id, // pastikan ada ID user
+                                                    book_id: loan.book?.id, // pastikan ada ID book
+                                                })
                                                 setModalType('edit')
                                             }}
                                             className="px-3 py-1 bg-blue-500 text-white rounded">
@@ -268,306 +365,28 @@ export default function LoansTable() {
 
                 {/* Modal Add */}
                 {modalType === 'add' && selectedLoan && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-                        <div className="bg-white p-6 rounded shadow-md w-96">
-                            <h2 className="text-lg font-bold mb-4">Add Loan</h2>
-                            <form onSubmit={handleAdd} className="space-y-3">
-                                {/* User Select */}
-                                <div className="space-y-1">
-                                    <label className="block text-sm font-medium text-gray-700">
-                                        User
-                                    </label>
-                                    <Select
-                                        options={users?.map(u => ({
-                                            value: u.id,
-                                            label: u.name,
-                                        }))}
-                                        value={
-                                            selectedLoan.user_id
-                                                ? {
-                                                      value: selectedLoan.user_id,
-                                                      label: users.find(
-                                                          u =>
-                                                              u.id ===
-                                                              selectedLoan.user_id,
-                                                      )?.name,
-                                                  }
-                                                : null
-                                        }
-                                        onChange={option =>
-                                            setSelectedLoan({
-                                                ...selectedLoan,
-                                                user_id: option.value,
-                                            })
-                                        }
-                                        placeholder="Select User"
-                                        isSearchable
-                                    />
-                                </div>
-
-                                {/* Book Select */}
-                                <div className="space-y-1">
-                                    <label className="block text-sm font-medium text-gray-700">
-                                        Book
-                                    </label>
-                                    <Select
-                                        options={books?.map(b => ({
-                                            value: b.id,
-                                            label: `${b.title} (${b.available > 0 ? `Available ${b.available}` : 'Borrowed All'})`,
-                                            isDisabled: b.available <= 0,
-                                        }))}
-                                        value={
-                                            selectedLoan.book_id
-                                                ? {
-                                                      value: selectedLoan.book_id,
-                                                      label: `${books.find(b => b.id === selectedLoan.book_id)?.title} (${books.find(b => b.id === selectedLoan.book_id)?.available > 0 ? `Available ${books.find(b => b.id === selectedLoan.book_id)?.available}` : 'Borrowed All'})`,
-                                                  }
-                                                : null
-                                        }
-                                        onChange={option =>
-                                            setSelectedLoan({
-                                                ...selectedLoan,
-                                                book_id: option.value,
-                                            })
-                                        }
-                                        placeholder="Select Book"
-                                        isSearchable
-                                    />
-                                </div>
-
-                                {/* Borrowed At */}
-                                <div className="space-y-1">
-                                    <label className="block text-sm font-medium text-gray-700">
-                                        Borrowed At
-                                    </label>
-                                    <input
-                                        type="date"
-                                        value={selectedLoan.borrowed_at}
-                                        onChange={e =>
-                                            setSelectedLoan({
-                                                ...selectedLoan,
-                                                borrowed_at: e.target.value,
-                                            })
-                                        }
-                                        className="w-full border p-2 rounded"
-                                        required
-                                    />
-                                </div>
-
-                                {/* Return Date */}
-                                <div className="space-y-1">
-                                    <label className="block text-sm font-medium text-gray-700">
-                                        Return Date
-                                    </label>
-                                    <input
-                                        type="date"
-                                        value={selectedLoan.return_date || ''}
-                                        onChange={e =>
-                                            setSelectedLoan({
-                                                ...selectedLoan,
-                                                return_date:
-                                                    e.target.value || null,
-                                            })
-                                        }
-                                        className="w-full border p-2 rounded"
-                                    />
-                                </div>
-
-                                {/* Status */}
-                                <div className="space-y-1">
-                                    <label className="block text-sm font-medium text-gray-700">
-                                        Status
-                                    </label>
-                                    <select
-                                        value={selectedLoan.status}
-                                        onChange={e =>
-                                            setSelectedLoan({
-                                                ...selectedLoan,
-                                                status: e.target.value,
-                                            })
-                                        }
-                                        className="w-full border p-2 rounded">
-                                        <option value="available">
-                                            Available
-                                        </option>
-                                        <option value="borrowed">
-                                            Borrowed
-                                        </option>
-                                        <option value="returned">
-                                            Returned
-                                        </option>
-                                    </select>
-                                </div>
-
-                                <div className="flex justify-end space-x-2">
-                                    <button
-                                        type="button"
-                                        onClick={() => setModalType(null)}
-                                        className="px-3 py-1 bg-gray-400 text-white rounded">
-                                        Batal
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        className="px-3 py-1 bg-green-600 text-white rounded">
-                                        Simpan
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
+                    <LoanModal
+                        title="Add Loan"
+                        selectedLoan={selectedLoan}
+                        setSelectedLoan={setSelectedLoan}
+                        setModalType={setModalType}
+                        handleSubmit={handleAdd}
+                        users={users}
+                        books={books}
+                    />
                 )}
 
                 {/* Modal Edit */}
                 {modalType === 'edit' && selectedLoan && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-                        <div className="bg-white p-6 rounded shadow-md w-96">
-                            <h2 className="text-lg font-bold mb-4">
-                                Edit Loan
-                            </h2>
-                            <form onSubmit={handleEdit} className="space-y-3">
-                                {/* User Select */}
-                                <div className="space-y-1">
-                                    <label className="block text-sm font-medium text-gray-700">
-                                        User
-                                    </label>
-                                    <Select
-                                        options={users?.map(u => ({
-                                            value: u.id,
-                                            label: u.name,
-                                        }))}
-                                        value={
-                                            selectedLoan.user_id
-                                                ? {
-                                                      value: selectedLoan.user_id,
-                                                      label: users.find(
-                                                          u =>
-                                                              u.id ===
-                                                              selectedLoan.user_id,
-                                                      )?.name,
-                                                  }
-                                                : null
-                                        }
-                                        onChange={option =>
-                                            setSelectedLoan({
-                                                ...selectedLoan,
-                                                user_id: option.value,
-                                            })
-                                        }
-                                        placeholder="Select User"
-                                        isSearchable
-                                    />
-                                </div>
-
-                                {/* Book Select */}
-                                <div className="space-y-1">
-                                    <label className="block text-sm font-medium text-gray-700">
-                                        Book
-                                    </label>
-                                    <Select
-                                        options={books?.map(b => ({
-                                            value: b.id,
-                                            label: `${b.title} (${b.available > 0 ? `Available ${b.available}` : 'Borrowed All'})`,
-                                            isDisabled: b.available <= 0,
-                                        }))}
-                                        value={
-                                            selectedLoan.book_id
-                                                ? {
-                                                      value: selectedLoan.book_id,
-                                                      label: `${books.find(b => b.id === selectedLoan.book_id)?.title} (${books.find(b => b.id === selectedLoan.book_id)?.available > 0 ? `Available ${books.find(b => b.id === selectedLoan.book_id)?.available}` : 'Borrowed All'})`,
-                                                  }
-                                                : null
-                                        }
-                                        onChange={option =>
-                                            setSelectedLoan({
-                                                ...selectedLoan,
-                                                book_id: option.value,
-                                            })
-                                        }
-                                        placeholder="Select Book"
-                                        isSearchable
-                                    />
-                                </div>
-
-                                {/* Borrowed At */}
-                                <div className="space-y-1">
-                                    <label className="block text-sm font-medium text-gray-700">
-                                        Borrowed At
-                                    </label>
-                                    <input
-                                        type="date"
-                                        value={selectedLoan.borrowed_at}
-                                        onChange={e =>
-                                            setSelectedLoan({
-                                                ...selectedLoan,
-                                                borrowed_at: e.target.value,
-                                            })
-                                        }
-                                        className="w-full border p-2 rounded"
-                                        required
-                                    />
-                                </div>
-
-                                {/* Return Date */}
-                                <div className="space-y-1">
-                                    <label className="block text-sm font-medium text-gray-700">
-                                        Return Date
-                                    </label>
-                                    <input
-                                        type="date"
-                                        value={selectedLoan.return_date || ''}
-                                        onChange={e =>
-                                            setSelectedLoan({
-                                                ...selectedLoan,
-                                                return_date:
-                                                    e.target.value || null,
-                                            })
-                                        }
-                                        className="w-full border p-2 rounded"
-                                    />
-                                </div>
-
-                                {/* Status */}
-                                <div className="space-y-1">
-                                    <label className="block text-sm font-medium text-gray-700">
-                                        Status
-                                    </label>
-                                    <select
-                                        value={selectedLoan.status}
-                                        onChange={e =>
-                                            setSelectedLoan({
-                                                ...selectedLoan,
-                                                status: e.target.value,
-                                            })
-                                        }
-                                        className="w-full border p-2 rounded">
-                                        <option value="available">
-                                            Available
-                                        </option>
-                                        <option value="borrowed">
-                                            Borrowed
-                                        </option>
-                                        <option value="returned">
-                                            Returned
-                                        </option>
-                                    </select>
-                                </div>
-
-                                <div className="flex justify-end space-x-2">
-                                    <button
-                                        type="button"
-                                        onClick={() => setModalType(null)}
-                                        className="px-3 py-1 bg-gray-400 text-white rounded">
-                                        Batal
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        className="px-3 py-1 bg-blue-600 text-white rounded">
-                                        Simpan
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
+                    <LoanModal
+                        title="Edit Loan"
+                        selectedLoan={selectedLoan}
+                        setSelectedLoan={setSelectedLoan}
+                        setModalType={setModalType}
+                        handleSubmit={handleEdit}
+                        users={users}
+                        books={books}
+                    />
                 )}
 
                 {/* Modal Delete */}
@@ -580,8 +399,8 @@ export default function LoansTable() {
                             <p>
                                 Yakin mau hapus loan:{' '}
                                 <b>
-                                    {selectedLoan.user.name} -{' '}
-                                    {selectedLoan.book.title}
+                                    {selectedLoan.user?.name} -{' '}
+                                    {selectedLoan.book?.title}
                                 </b>
                                 ?
                             </p>
@@ -602,6 +421,166 @@ export default function LoansTable() {
                         </div>
                     </div>
                 )}
+            </div>
+        </div>
+    )
+}
+
+// 🔧 Ekstrak Modal Add/Edit supaya tidak duplikat
+function LoanModal({
+    title,
+    selectedLoan,
+    setSelectedLoan,
+    setModalType,
+    handleSubmit,
+    users,
+    books,
+}) {
+    return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-30">
+            <div className="bg-white p-6 rounded shadow-md w-96">
+                <h2 className="text-lg font-bold mb-4">{title}</h2>
+                <form onSubmit={handleSubmit} className="space-y-3">
+                    {/* User Select */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">
+                            User
+                        </label>
+                        <Select
+                            options={users.map(u => ({
+                                value: u.id,
+                                label: u.name,
+                            }))}
+                            value={
+                                users
+                                    .map(u => ({ value: u.id, label: u.name }))
+                                    .find(
+                                        opt =>
+                                            opt.value === selectedLoan.user_id,
+                                    ) || null
+                            }
+                            onChange={opt =>
+                                setSelectedLoan({
+                                    ...selectedLoan,
+                                    user_id: opt.value,
+                                })
+                            }
+                            placeholder="Select User"
+                            isSearchable
+                        />
+                    </div>
+
+                    {/* Book Select */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">
+                            Book
+                        </label>
+                        <Select
+                            options={books.map(b => ({
+                                value: b.id,
+                                label: `${b.title} ${
+                                    b.available > 0
+                                        ? `(Available ${b.available})`
+                                        : '(Borrowed All)'
+                                }`,
+                                isDisabled: b.available <= 0,
+                            }))}
+                            value={
+                                books
+                                    .map(b => ({
+                                        value: b.id,
+                                        label: `${b.title} ${
+                                            b.available > 0
+                                                ? `(Available ${b.available})`
+                                                : '(Borrowed All)'
+                                        }`,
+                                    }))
+                                    .find(
+                                        opt =>
+                                            opt.value === selectedLoan.book_id,
+                                    ) || null
+                            }
+                            onChange={opt =>
+                                setSelectedLoan({
+                                    ...selectedLoan,
+                                    book_id: opt.value,
+                                })
+                            }
+                            placeholder="Select Book"
+                            isSearchable
+                        />
+                    </div>
+
+                    {/* Borrowed At */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">
+                            Borrowed At
+                        </label>
+                        <input
+                            type="date"
+                            value={selectedLoan.borrowed_at}
+                            onChange={e =>
+                                setSelectedLoan({
+                                    ...selectedLoan,
+                                    borrowed_at: e.target.value,
+                                })
+                            }
+                            className="w-full border p-2 rounded"
+                            required
+                        />
+                    </div>
+
+                    {/* Return Date */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">
+                            Return Date
+                        </label>
+                        <input
+                            type="date"
+                            value={selectedLoan.return_date || ''}
+                            onChange={e =>
+                                setSelectedLoan({
+                                    ...selectedLoan,
+                                    return_date: e.target.value || null,
+                                })
+                            }
+                            className="w-full border p-2 rounded"
+                        />
+                    </div>
+
+                    {/* Status */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700">
+                            Status
+                        </label>
+                        <select
+                            value={selectedLoan.status}
+                            onChange={e =>
+                                setSelectedLoan({
+                                    ...selectedLoan,
+                                    status: e.target.value,
+                                })
+                            }
+                            className="w-full border p-2 rounded">
+                            <option value="borrowed">Borrowed</option>
+                            <option value="returned">Returned</option>
+                        </select>
+                    </div>
+
+                    <div className="flex justify-end space-x-2">
+                        <button
+                            type="button"
+                            onClick={() => setModalType(null)}
+                            className="px-3 py-1 bg-gray-400 text-white rounded">
+                            Batal
+                        </button>
+                        <button
+                            type="submit"
+                            className="px-3 py-1 bg-green-600 text-white rounded">
+                            Simpan
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     )

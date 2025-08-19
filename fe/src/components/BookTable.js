@@ -34,7 +34,7 @@ export default function AllBooksPage() {
         {
             keepPreviousData: true,
             revalidateOnFocus: false,
-            dedupingInterval: 300,
+            dedupingInterval: 500,
         },
     )
 
@@ -61,7 +61,7 @@ export default function AllBooksPage() {
     }, [search])
 
     useEffect(() => {
-        const t = setTimeout(() => setDebouncedSearch(search), 500)
+        const t = setTimeout(() => setDebouncedSearch(search), 300)
         return () => clearTimeout(t)
     }, [search])
 
@@ -78,16 +78,53 @@ export default function AllBooksPage() {
     // --- Admin Book Handlers ---
     const handleAdd = async e => {
         e.preventDefault()
-        await api.post(`/api/perpus/books`, selectedBook)
-        mutate()
-        setModalType(null)
+        try {
+            const formData = new FormData()
+            formData.append('title', selectedBook.title)
+            formData.append('author', selectedBook.author)
+            formData.append('stock', selectedBook.stock)
+            if (selectedBook.cover) {
+                formData.append('cover', selectedBook.cover)
+            }
+
+            await api.post(`/api/perpus/books`, formData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+            })
+
+            mutate()
+            setModalType(null)
+        } catch (err) {
+            console.error(err)
+            alert('Gagal menambah buku')
+        }
     }
 
     const handleEdit = async e => {
         e.preventDefault()
-        await api.put(`/api/perpus/books/${selectedBook.id}`, selectedBook)
-        mutate()
-        setModalType(null)
+        try {
+            const formData = new FormData()
+            formData.append('title', selectedBook.title)
+            formData.append('author', selectedBook.author)
+            formData.append('stock', selectedBook.stock)
+
+            if (selectedBook.cover instanceof File) {
+                formData.append('cover', selectedBook.cover)
+            }
+
+            await api.post(
+                `/api/perpus/books/${selectedBook.id}?_method=PUT`,
+                formData,
+                {
+                    headers: { 'Content-Type': 'multipart/form-data' },
+                },
+            )
+
+            mutate()
+            setModalType(null)
+        } catch (err) {
+            console.error(err)
+            alert('Gagal update buku')
+        }
     }
 
     const handleDelete = async id => {
@@ -160,6 +197,7 @@ export default function AllBooksPage() {
                             <tr className="bg-gray-100">
                                 <th className="p-2 border">No</th>
                                 <th className="p-2 border">Title</th>
+                                <th className="p-2 border">Cover</th>
                                 <th className="p-2 border">Author</th>
                                 {user?.role === 'admin' && (
                                     <th className="p-2 border">Stock</th>
@@ -201,6 +239,19 @@ export default function AllBooksPage() {
                                                 ),
                                             )
                                         })()}
+                                    </td>
+                                    <td className="p-2 border text-center">
+                                        {book.cover ? (
+                                            <img
+                                                src={book.cover}
+                                                alt={book.title}
+                                                className="w-16 h-20 object-cover rounded mx-auto"
+                                            />
+                                        ) : (
+                                            <span className="text-gray-400">
+                                                No cover
+                                            </span>
+                                        )}
                                     </td>
                                     <td className="p-2 border">
                                         {book.author}
@@ -321,7 +372,7 @@ export default function AllBooksPage() {
                 {modalType === 'add' &&
                     selectedBook &&
                     user?.role === 'admin' && (
-                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-30">
                             <div className="bg-white p-6 rounded shadow-md w-96">
                                 <h2 className="text-lg font-bold mb-4">
                                     Add Book
@@ -329,29 +380,80 @@ export default function AllBooksPage() {
                                 <form
                                     onSubmit={handleAdd}
                                     className="space-y-3">
-                                    {['title', 'author', 'stock'].map(field => (
-                                        <div key={field} className="space-y-1">
-                                            <label className="block text-sm font-medium text-gray-700">
-                                                {field.charAt(0).toUpperCase() +
-                                                    field.slice(1)}
-                                            </label>
-                                            <input
-                                                type={
-                                                    field === 'stock'
-                                                        ? 'number'
-                                                        : 'text'
-                                                }
-                                                value={selectedBook[field]}
-                                                onChange={e =>
-                                                    setSelectedBook({
-                                                        ...selectedBook,
-                                                        [field]: e.target.value,
-                                                    })
-                                                }
-                                                className="w-full border p-2 rounded"
-                                            />
-                                        </div>
-                                    ))}
+                                    {/* Title */}
+                                    <div className="space-y-1">
+                                        <label className="block text-sm font-medium text-gray-700">
+                                            Title
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={selectedBook.title}
+                                            onChange={e =>
+                                                setSelectedBook({
+                                                    ...selectedBook,
+                                                    title: e.target.value,
+                                                })
+                                            }
+                                            className="w-full border p-2 rounded"
+                                            required
+                                        />
+                                    </div>
+
+                                    {/* Author */}
+                                    <div className="space-y-1">
+                                        <label className="block text-sm font-medium text-gray-700">
+                                            Author
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={selectedBook.author}
+                                            onChange={e =>
+                                                setSelectedBook({
+                                                    ...selectedBook,
+                                                    author: e.target.value,
+                                                })
+                                            }
+                                            className="w-full border p-2 rounded"
+                                        />
+                                    </div>
+
+                                    {/* Cover Upload */}
+                                    <div className="space-y-1">
+                                        <label className="block text-sm font-medium text-gray-700">
+                                            Cover
+                                        </label>
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={e =>
+                                                setSelectedBook({
+                                                    ...selectedBook,
+                                                    cover: e.target.files[0],
+                                                })
+                                            }
+                                            className="w-full border p-2 rounded"
+                                        />
+                                    </div>
+
+                                    {/* Stock */}
+                                    <div className="space-y-1">
+                                        <label className="block text-sm font-medium text-gray-700">
+                                            Stock
+                                        </label>
+                                        <input
+                                            type="number"
+                                            value={selectedBook.stock}
+                                            onChange={e =>
+                                                setSelectedBook({
+                                                    ...selectedBook,
+                                                    stock: e.target.value,
+                                                })
+                                            }
+                                            className="w-full border p-2 rounded"
+                                            required
+                                        />
+                                    </div>
+
                                     <div className="flex justify-end space-x-2">
                                         <button
                                             type="button"
@@ -374,7 +476,7 @@ export default function AllBooksPage() {
                 {modalType === 'edit' &&
                     selectedBook &&
                     user?.role === 'admin' && (
-                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-30">
                             <div className="bg-white p-6 rounded shadow-md w-96">
                                 <h2 className="text-lg font-bold mb-4">
                                     Edit Book
@@ -382,29 +484,92 @@ export default function AllBooksPage() {
                                 <form
                                     onSubmit={handleEdit}
                                     className="space-y-3">
-                                    {['title', 'author', 'stock'].map(field => (
-                                        <div key={field} className="space-y-1">
-                                            <label className="block text-sm font-medium text-gray-700">
-                                                {field.charAt(0).toUpperCase() +
-                                                    field.slice(1)}
-                                            </label>
-                                            <input
-                                                type={
-                                                    field === 'stock'
-                                                        ? 'number'
-                                                        : 'text'
-                                                }
-                                                value={selectedBook[field]}
-                                                onChange={e =>
-                                                    setSelectedBook({
-                                                        ...selectedBook,
-                                                        [field]: e.target.value,
-                                                    })
-                                                }
-                                                className="w-full border p-2 rounded"
-                                            />
-                                        </div>
-                                    ))}
+                                    {/* Title */}
+                                    <div className="space-y-1">
+                                        <label className="block text-sm font-medium text-gray-700">
+                                            Title
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={selectedBook.title}
+                                            onChange={e =>
+                                                setSelectedBook({
+                                                    ...selectedBook,
+                                                    title: e.target.value,
+                                                })
+                                            }
+                                            className="w-full border p-2 rounded"
+                                            required
+                                        />
+                                    </div>
+
+                                    {/* Author */}
+                                    <div className="space-y-1">
+                                        <label className="block text-sm font-medium text-gray-700">
+                                            Author
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={selectedBook.author}
+                                            onChange={e =>
+                                                setSelectedBook({
+                                                    ...selectedBook,
+                                                    author: e.target.value,
+                                                })
+                                            }
+                                            className="w-full border p-2 rounded"
+                                        />
+                                    </div>
+
+                                    {/* Cover Upload */}
+                                    <div className="space-y-1">
+                                        <label className="block text-sm font-medium text-gray-700">
+                                            Cover
+                                        </label>
+
+                                        {/* preview cover lama */}
+                                        {selectedBook.cover &&
+                                            typeof selectedBook.cover ===
+                                                'string' && (
+                                                <img
+                                                    src={selectedBook.cover}
+                                                    alt={selectedBook.title}
+                                                    className="w-20 h-28 object-cover rounded mb-2"
+                                                />
+                                            )}
+
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={e =>
+                                                setSelectedBook({
+                                                    ...selectedBook,
+                                                    cover: e.target.files[0], // file baru
+                                                })
+                                            }
+                                            className="w-full border p-2 rounded"
+                                        />
+                                    </div>
+
+                                    {/* Stock */}
+                                    <div className="space-y-1">
+                                        <label className="block text-sm font-medium text-gray-700">
+                                            Stock
+                                        </label>
+                                        <input
+                                            type="number"
+                                            value={selectedBook.stock}
+                                            onChange={e =>
+                                                setSelectedBook({
+                                                    ...selectedBook,
+                                                    stock: e.target.value,
+                                                })
+                                            }
+                                            className="w-full border p-2 rounded"
+                                            required
+                                        />
+                                    </div>
+
                                     <div className="flex justify-end space-x-2">
                                         <button
                                             type="button"
@@ -427,7 +592,7 @@ export default function AllBooksPage() {
                 {modalType === 'delete' &&
                     selectedBook &&
                     user?.role === 'admin' && (
-                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-30">
                             <div className="bg-white p-6 rounded shadow-md w-80">
                                 <h2 className="text-lg font-bold mb-4">
                                     Hapus Book?
