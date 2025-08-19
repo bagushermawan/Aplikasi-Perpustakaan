@@ -13,11 +13,9 @@ class BookResource extends JsonResource
         $cover = $this->cover;
 
         if ($cover) {
-            if (!Str::startsWith($cover, ['https://'])) {
+            if (!Str::startsWith($cover, ['http://', 'https://'])) {
                 $cover = asset(Storage::url($cover));
             }
-        } else {
-            $cover = null;
         }
 
         return [
