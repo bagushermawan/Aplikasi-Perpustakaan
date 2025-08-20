@@ -21,6 +21,7 @@ class BookFactory extends Factory
             'author'   => $this->faker->name,
             'stock'    => $this->faker->numberBetween(1, 10),
             'cover'    => "https://picsum.photos/200/300?random=" . $this->faker->unique()->numberBetween(1, 1000),
+            'harga'   => $this->faker->numberBetween($min = 1500, $max = 100000),
         ];
     }
 }

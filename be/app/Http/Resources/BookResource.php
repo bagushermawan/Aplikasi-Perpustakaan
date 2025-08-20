@@ -26,6 +26,7 @@ class BookResource extends JsonResource
             'borrowed'  => $this->loans()->where('status', 'borrowed')->count(),
             'available' => $this->availableStock(),
             'cover'     => $cover,
+            'harga'     => $this->harga,
         ];
     }
 }

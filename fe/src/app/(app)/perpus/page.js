@@ -55,69 +55,71 @@ const PerpusPage = () => {
 
     return (
         <>
-            <Header title="Perpustakaan" />
+            {/* <Header title="Perpustakaan" /> */}
             <div className="flex">
                 {/* Sidebar */}
                 <Sidebar />
 
                 {/* Main Content */}
                 <div className="flex-1 p-6">
-                    <h1 className="text-2xl font-bold mb-6">
-                        Dashboard Perpustakaan
-                    </h1>
+                    <div className="p-5 bg-white rounded-lg">
+                        <h1 className="text-2xl font-bold mb-6">
+                            Dashboard Perpustakaan
+                        </h1>
 
-                    <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:[grid-template-columns:repeat(auto-fit,minmax(200px,1fr))]">
-                        {/* Total Users */}
-                        {currentUser?.role === 'admin' && (
-                            <div className="bg-blue-500 text-white rounded-lg p-6 shadow flex items-center">
-                                <FaUsers className="text-4xl mr-4" />
+                        <div className="p-2 grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:[grid-template-columns:repeat(auto-fit,minmax(200px,1fr))]">
+                            {/* Total Users */}
+                            {currentUser?.role === 'admin' && (
+                                <div className="bg-blue-500 text-white rounded-lg p-6 shadow flex items-center">
+                                    <FaUsers className="text-4xl mr-4" />
+                                    <div>
+                                        <h2 className="text-lg font-semibold">
+                                            Total Users
+                                        </h2>
+                                        <p className="mt-2 text-3xl font-bold">
+                                            {stats.users}
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Total Books */}
+                            <div className="bg-green-500 text-white rounded-lg p-6 shadow flex items-center">
+                                <FaBook className="text-4xl mr-4" />
                                 <div>
                                     <h2 className="text-lg font-semibold">
-                                        Total Users
+                                        Total Books
                                     </h2>
                                     <p className="mt-2 text-3xl font-bold">
-                                        {stats.users}
+                                        {stats.books}
                                     </p>
                                 </div>
                             </div>
-                        )}
 
-                        {/* Total Books */}
-                        <div className="bg-green-500 text-white rounded-lg p-6 shadow flex items-center">
-                            <FaBook className="text-4xl mr-4" />
-                            <div>
-                                <h2 className="text-lg font-semibold">
-                                    Total Books
-                                </h2>
-                                <p className="mt-2 text-3xl font-bold">
-                                    {stats.books}
-                                </p>
+                            {/* Total Loans */}
+                            <div className="bg-yellow-500 text-white rounded-lg p-6 shadow flex items-center">
+                                <FaClipboardList className="text-4xl mr-4" />
+                                <div>
+                                    <h2 className="text-lg font-semibold">
+                                        Total Loans
+                                    </h2>
+                                    <p className="mt-2 text-3xl font-bold">
+                                        {stats.loans}
+                                    </p>
+                                </div>
                             </div>
-                        </div>
 
-                        {/* Total Loans */}
-                        <div className="bg-yellow-500 text-white rounded-lg p-6 shadow flex items-center">
-                            <FaClipboardList className="text-4xl mr-4" />
-                            <div>
-                                <h2 className="text-lg font-semibold">
-                                    Total Loans
-                                </h2>
-                                <p className="mt-2 text-3xl font-bold">
-                                    {stats.loans}
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* Borrowed Books */}
-                        <div className="bg-red-500 text-white rounded-lg p-6 shadow flex items-center">
-                            <FaBookReader className="text-4xl mr-4" />
-                            <div>
-                                <h2 className="text-lg font-semibold">
-                                    Currently Borrowed
-                                </h2>
-                                <p className="mt-2 text-3xl font-bold">
-                                    {stats.borrowedBooks}
-                                </p>
+                            {/* Borrowed Books */}
+                            <div className="bg-red-500 text-white rounded-lg p-6 shadow flex items-center">
+                                <FaBookReader className="text-4xl mr-4" />
+                                <div>
+                                    <h2 className="text-lg font-semibold">
+                                        Currently Borrowed
+                                    </h2>
+                                    <p className="mt-2 text-3xl font-bold">
+                                        {stats.borrowedBooks}
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     </div>

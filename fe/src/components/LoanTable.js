@@ -9,6 +9,7 @@ import {
     HiMiniArrowSmallUp,
     HiMiniArrowSmallDown,
 } from 'react-icons/hi2'
+import toast from 'react-hot-toast'
 
 const fetcher = url => api.get(url).then(res => res.data)
 
@@ -98,26 +99,42 @@ export default function LoansTable() {
     const meta = loansResp?.meta || {}
     const lastPage = meta.last_page || 1
 
-    const handleDelete = async id => {
-        if (!confirm('Yakin hapus loan ini?')) return
-        await api.delete(`/api/perpus/loans/${id}`)
+
+
+    const handleAdd = async e => {
+        e.preventDefault()
+        await toast.promise(api.post(`/api/perpus/loans`, selectedLoan), {
+            loading: '📡 Menyimpan pinjaman...',
+            success: '📗 Loan berhasil ditambahkan!',
+            error: '❌ Gagal menambah loan',
+        })
         mutate()
         setModalType(null)
     }
 
     const handleEdit = async e => {
         e.preventDefault()
-        await api.put(`/api/perpus/loans/${selectedLoan.id}`, selectedLoan)
+        await toast.promise(
+            api.put(`/api/perpus/loans/${selectedLoan.id}`, selectedLoan),
+            {
+                loading: '⏳ Update loan...',
+                success: '✏️ Loan berhasil diperbarui!',
+                error: '❌ Gagal update loan',
+            },
+        )
         mutate()
         setModalType(null)
     }
 
-    const handleAdd = async e => {
-        e.preventDefault()
-        await api.post(`/api/perpus/loans`, selectedLoan)
-        mutate()
-        setModalType(null)
-    }
+     const handleDelete = async id => {
+         await toast.promise(api.delete(`/api/perpus/loans/${id}`), {
+             loading: '⏳ Menghapus loan...',
+             success: '🗑️ Loan berhasil dihapus!',
+             error: '❌ Gagal menghapus loan',
+         })
+         mutate()
+         setModalType(null)
+     }
 
     return (
         <div className="relative">
@@ -391,7 +408,7 @@ export default function LoansTable() {
 
                 {/* Modal Delete */}
                 {modalType === 'delete' && selectedLoan && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-30">
                         <div className="bg-white p-6 rounded shadow-md w-80">
                             <h2 className="text-lg font-bold mb-4">
                                 Hapus Loan?

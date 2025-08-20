@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('cover')->nullable();
             $table->string('author')->nullable();
             $table->integer('stock')->default(0);
+            $table->decimal('harga');
             $table->timestamps();
         });
     }

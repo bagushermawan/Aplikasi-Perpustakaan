@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import useSWR from 'swr'
 import api from '@/lib/axios'
+import toast from 'react-hot-toast'
 
 const fetcher = url => api.get(url).then(res => res.data)
 
@@ -83,19 +84,26 @@ export default function AllBooksPage() {
             formData.append('title', selectedBook.title)
             formData.append('author', selectedBook.author)
             formData.append('stock', selectedBook.stock)
+            formData.append('harga', selectedBook.harga)
             if (selectedBook.cover) {
                 formData.append('cover', selectedBook.cover)
             }
 
-            await api.post(`/api/perpus/books`, formData, {
-                headers: { 'Content-Type': 'multipart/form-data' },
-            })
-
+            await toast.promise(
+                api.post(`/api/perpus/books`, formData, {
+                    headers: { 'Content-Type': 'multipart/form-data' },
+                }),
+                {
+                    loading: '📡 Menyimpan buku...',
+                    success: '📚 Buku berhasil ditambahkan!',
+                    error: '❌ Gagal menambah buku',
+                },
+            )
             mutate()
             setModalType(null)
         } catch (err) {
             console.error(err)
-            alert('Gagal menambah buku')
+            toast.error('❌ Gagal menambah buku')
         }
     }
 
@@ -106,16 +114,22 @@ export default function AllBooksPage() {
             formData.append('title', selectedBook.title)
             formData.append('author', selectedBook.author)
             formData.append('stock', selectedBook.stock)
+            formData.append('harga', selectedBook.harga)
 
             if (selectedBook.cover instanceof File) {
                 formData.append('cover', selectedBook.cover)
             }
 
-            await api.post(
-                `/api/perpus/books/${selectedBook.id}?_method=PUT`,
-                formData,
+            await toast.promise(
+                api.post(
+                    `/api/perpus/books/${selectedBook.id}?_method=PUT`,
+                    formData,
+                    { headers: { 'Content-Type': 'multipart/form-data' } },
+                ),
                 {
-                    headers: { 'Content-Type': 'multipart/form-data' },
+                    loading: '⏳ Update buku...',
+                    success: '✏️ Buku berhasil diperbarui!',
+                    error: '❌ Gagal update buku',
                 },
             )
 
@@ -123,28 +137,38 @@ export default function AllBooksPage() {
             setModalType(null)
         } catch (err) {
             console.error(err)
-            alert('Gagal update buku')
+            toast.error('❌ Gagal update buku')
         }
     }
 
     const handleDelete = async id => {
-        if (!confirm('Yakin hapus book ini?')) return
-        await api.delete(`/api/perpus/books/${id}`)
-        mutate()
-        setModalType(null)
+        try {
+            await toast.promise(api.delete(`/api/perpus/books/${id}`), {
+                loading: '⏳ Menghapus...',
+                success: '🗑️ Buku berhasil dihapus!',
+                error: '❌ Gagal menghapus buku',
+            })
+
+            mutate()
+            setModalType(null)
+        } catch (err) {
+            console.error(err)
+            toast.error('❌ Gagal menghapus buku')
+        }
     }
 
     // --- User Borrow Handler ---
     const handleBorrow = async e => {
         e.preventDefault()
-        try {
-            await api.post('/api/perpus/loans', selectedLoan)
-            mutate()
-            setModalType(null)
-        } catch (err) {
-            console.error(err)
-            alert('Gagal meminjam buku')
-        }
+
+        await toast.promise(api.post('/api/perpus/loans', selectedLoan), {
+            loading: '⏳ Meminjam buku...',
+            success: '📖 Buku berhasil dipinjam!',
+            error: '❌ Gagal meminjam buku',
+        })
+
+        mutate()
+        setModalType(null)
     }
 
     return (
@@ -178,6 +202,7 @@ export default function AllBooksPage() {
                                     title: '',
                                     author: '',
                                     stock: '',
+                                    harga: '',
                                 })
                                 setModalType('add')
                             }}
@@ -203,6 +228,7 @@ export default function AllBooksPage() {
                                     <th className="p-2 border">Stock</th>
                                 )}
                                 <th className="p-2 border">Available</th>
+                                <th className="p-2 border">Harga</th>
                                 <th className="p-2 border">Actions</th>
                             </tr>
                         </thead>
@@ -263,7 +289,7 @@ export default function AllBooksPage() {
                                             </span>{' '}
                                             {book.borrowed > 0 && (
                                                 <span className="text-gray-500">
-                                                    (borrowed {book.borrowed})
+                                                    (dibeli {book.borrowed})
                                                 </span>
                                             )}
                                         </td>
@@ -278,6 +304,15 @@ export default function AllBooksPage() {
                                                 {book.available}
                                             </span>
                                         )}
+                                    </td>
+                                    <td className="p-2 border text-center">
+                                        <span className="font-bold">
+                                            {new Intl.NumberFormat('id-ID', {
+                                                style: 'currency',
+                                                currency: 'IDR',
+                                                minimumFractionDigits: 2,
+                                            }).format(book.harga)}
+                                        </span>
                                     </td>
                                     <td className="p-2 border space-x-2 text-center">
                                         {user?.role === 'admin' && (
@@ -454,6 +489,25 @@ export default function AllBooksPage() {
                                         />
                                     </div>
 
+                                    {/* Price */}
+                                    <div className="space-y-1">
+                                        <label className="block text-sm font-medium text-gray-700">
+                                            Harga
+                                        </label>
+                                        <input
+                                            type="number"
+                                            value={selectedBook.harga}
+                                            onChange={e =>
+                                                setSelectedBook({
+                                                    ...selectedBook,
+                                                    harga: e.target.value,
+                                                })
+                                            }
+                                            className="w-full border p-2 rounded"
+                                            required
+                                        />
+                                    </div>
+
                                     <div className="flex justify-end space-x-2">
                                         <button
                                             type="button"
@@ -570,6 +624,25 @@ export default function AllBooksPage() {
                                         />
                                     </div>
 
+                                    {/* Price */}
+                                    <div className="space-y-1">
+                                        <label className="block text-sm font-medium text-gray-700">
+                                            Harga
+                                        </label>
+                                        <input
+                                            type="number"
+                                            value={selectedBook.harga}
+                                            onChange={e =>
+                                                setSelectedBook({
+                                                    ...selectedBook,
+                                                    harga: e.target.value,
+                                                })
+                                            }
+                                            className="w-full border p-2 rounded"
+                                            required
+                                        />
+                                    </div>
+
                                     <div className="flex justify-end space-x-2">
                                         <button
                                             type="button"
@@ -595,13 +668,28 @@ export default function AllBooksPage() {
                         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-30">
                             <div className="bg-white p-6 rounded shadow-md w-80">
                                 <h2 className="text-lg font-bold mb-4">
-                                    Hapus Book?
+                                    Delete Book?
                                 </h2>
-                                <p>
-                                    Yakin mau hapus book:{' '}
-                                    <b>{selectedBook.title}?</b>
+                                {/* Cover Preview */}
+                                {selectedBook.cover && (
+                                    <img
+                                        src={
+                                            selectedBook.cover.startsWith(
+                                                'http',
+                                            )
+                                                ? selectedBook.cover
+                                                : `/storage/${selectedBook.cover}`
+                                        }
+                                        alt={selectedBook.title}
+                                        className="w-32 h-48 object-cover rounded mx-auto mb-4 shadow"
+                                    />
+                                )}
+                                <p className="text-center">
+                                    Yakin mau hapus buku:{' '}
+                                    <b>{selectedBook.title}</b>?
                                 </p>
-                                <div className="flex justify-end space-x-2 mt-4">
+
+                                <div className="flex justify-center space-x-2 mt-6">
                                     <button
                                         onClick={() => setModalType(null)}
                                         className="px-3 py-1 bg-gray-400 text-white rounded">

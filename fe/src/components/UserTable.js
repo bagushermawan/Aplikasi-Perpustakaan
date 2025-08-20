@@ -2,6 +2,7 @@
 import { useState, useRef, useEffect } from 'react'
 import useSWR from 'swr'
 import api from '@/lib/axios'
+import toast from 'react-hot-toast'
 
 const fetcher = url => api.get(url).then(res => res.data)
 
@@ -55,7 +56,6 @@ const perPage = 5
         if (search.length > 0) setIsFocused(false)
     }, [search])
 
-    // Debounce
     useEffect(() => {
         const t = setTimeout(() => setDebouncedSearch(search), 300)
         return () => clearTimeout(t)
@@ -73,29 +73,41 @@ const perPage = 5
     const meta = usersResp?.meta || {}
     const lastPage = meta.last_page || 1
 
-    // ─── Handlers ───────────────────────────────────────────
-    const handleDelete = async id => {
-        if (!confirm('Yakin hapus user ini?')) return
-        await api.delete(`/api/perpus/users/${id}`)
+    const handleAdd = async e => {
+        e.preventDefault()
+        await toast.promise(api.post(`/api/perpus/users`, selectedUser), {
+            loading: '📡 Menyimpan user...',
+            success: '👤 User berhasil ditambahkan!',
+            error: '❌ Gagal menambah user',
+        })
         mutate()
         setModalType(null)
     }
 
     const handleEdit = async e => {
         e.preventDefault()
-        await api.put(`/api/perpus/users/${selectedUser.id}`, selectedUser)
+        await toast.promise(
+            api.put(`/api/perpus/users/${selectedUser.id}`, selectedUser),
+            {
+                loading: '⏳ Update user...',
+                success: '✏️ User berhasil diperbarui!',
+                error: '❌ Gagal update user',
+            },
+        )
         mutate()
         setModalType(null)
     }
 
-    const handleAdd = async e => {
-        e.preventDefault()
-        await api.post(`/api/perpus/users`, selectedUser)
+    const handleDelete = async id => {
+        await toast.promise(api.delete(`/api/perpus/users/${id}`), {
+            loading: '⏳ Menghapus user...',
+            success: '🗑️ User berhasil dihapus!',
+            error: '❌ Gagal menghapus user',
+        })
         mutate()
         setModalType(null)
     }
 
-    // ─── Render ─────────────────────────────────────────────
     return (
         <div className="relative">
             {isFocused && search.length === 0 && (
@@ -243,7 +255,7 @@ const perPage = 5
 
             {/* Modal Add */}
             {modalType === 'add' && selectedUser && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-30">
                     <div className="bg-white p-6 rounded shadow-md w-96">
                         <h2 className="text-lg font-bold mb-4">Add User</h2>
                         <form onSubmit={handleAdd} className="space-y-3">
@@ -306,7 +318,7 @@ const perPage = 5
 
             {/* Modal Edit */}
             {modalType === 'edit' && selectedUser && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-30">
                     <div className="bg-white p-6 rounded shadow-md w-96">
                         <h2 className="text-lg font-bold mb-4">Edit User</h2>
                         <form onSubmit={handleEdit} className="space-y-3">
@@ -352,7 +364,7 @@ const perPage = 5
 
             {/* Modal Delete */}
             {modalType === 'delete' && selectedUser && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-30">
                     <div className="bg-white p-6 rounded shadow-md w-80">
                         <h2 className="text-lg font-bold mb-4">Hapus User?</h2>
                         <p>

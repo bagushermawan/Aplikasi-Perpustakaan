@@ -75,6 +75,10 @@ class LoanController extends Controller
             'status'      => 'required|in:available,borrowed,returned',
         ]);
 
+        if (empty($data['return_date'])) {
+            $data['return_date'] = \Carbon\Carbon::parse($data['borrowed_at'])->addDays(3);
+        }
+        
         $loan = Loan::create($data);
 
         return new LoanResource($loan->load(['user', 'book']));

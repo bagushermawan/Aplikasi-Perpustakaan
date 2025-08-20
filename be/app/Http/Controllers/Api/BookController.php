@@ -43,6 +43,7 @@ class BookController extends Controller
             'title'  => 'required|string|max:255',
             'author' => 'nullable|string|max:255',
             'stock'  => 'required|integer|min:0',
+            'harga'  => 'required|numeric|min:1',
             'cover'  => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
         ]);
 
@@ -67,6 +68,7 @@ class BookController extends Controller
             'title'  => 'required|string|max:255',
             'author' => 'nullable|string|max:255',
             'stock'  => 'required|integer|min:0',
+            'harga'  => 'required|numeric|min:1',
             'cover'  => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
         ]);
 
