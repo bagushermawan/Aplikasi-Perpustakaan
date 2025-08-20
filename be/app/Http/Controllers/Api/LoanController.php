@@ -22,12 +22,10 @@ class LoanController extends Controller
             ->join('books', 'loans.book_id', '=', 'books.id')
             ->select('loans.*');
 
-        // Filter by user
         if ($userId) {
             $query->where('loans.user_id', $userId);
         }
 
-        // Filter search
         if ($search) {
             $query->where(function ($q) use ($search) {
                 $q->where('users.name', 'like', "%{$search}%")
@@ -36,12 +34,10 @@ class LoanController extends Controller
             });
         }
 
-        // Filter by status
         if ($status = request('status')) {
             $query->where('loans.status', $status);
         }
 
-        // Sorting (whitelist kolom yg boleh)
         $allowedSorts = [
             'users.name',
             'books.title',
@@ -53,13 +49,31 @@ class LoanController extends Controller
         if ($sortBy && in_array($sortBy, $allowedSorts)) {
             $query->orderBy($sortBy, $sortDir);
         } else {
-            // default sort (kalau tidak ada sort khusus)
             $query->orderBy('loans.created_at', 'desc');
         }
 
-        return LoanResource::collection(
-            $query->paginate($perPage)->appends(request()->all())
-        );
+        $paginator = $query->paginate($perPage)->appends(request()->all());
+
+        $grandTotal = Loan::with('book')
+            ->when($userId, fn($q) => $q->where('user_id', $userId))
+            ->when($search, function ($q) use ($search) {
+                $q->whereHas('user', function ($u) use ($search) {
+                    $u->where('name', 'like', "%{$search}%");
+                })
+                    ->orWhereHas('book', function ($b) use ($search) {
+                        $b->where('title', 'like', "%{$search}%");
+                    })
+                    ->orWhere('status', 'like', "%{$search}%");
+            })
+            ->when($status, fn($q) => $q->where('status', $status))
+            ->get()
+            ->sum(fn($loan) => $loan->book->harga * $loan->quantity);
+
+        return LoanResource::collection($paginator)->additional([
+            'meta' => [
+                'grand_total' => $grandTotal,
+            ]
+        ]);
     }
 
     /**

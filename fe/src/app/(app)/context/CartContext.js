@@ -14,7 +14,11 @@ export function CartProvider({ children }) {
         const exist = cart.find(item => item.id === book.id)
         if (exist) {
             if (exist.quantity >= book.available) {
-                toast.error(`⚠️ Stok ${book.title} hanya ${book.available}`)
+                toast.error(
+                    <span>
+                        ⚠️ Stok buku <b>{book.title}</b> hanya {book.available}
+                    </span>,
+                )
                 return
             }
             setCart(
@@ -24,10 +28,19 @@ export function CartProvider({ children }) {
                         : item,
                 ),
             )
-            toast.success(`+1 ${book.title} ditambahkan`)
+            toast.success(
+                <span>
+                    ⚠️ +1 <b>{book.title}</b> ditambahkan
+                </span>,
+            )
         } else {
             if (book.available <= 0) {
-                toast.error('⚠️ Stok habis')
+                toast.error(
+                    <span>
+                        ⚠️ Stok buku <b>{book.title}</b> habis, tidak bisa
+                        ditambahkan
+                    </span>,
+                )
                 return
             }
             setCart([...cart, { ...book, quantity: 1 }])

@@ -18,7 +18,7 @@ const Dashboard = () => {
     const searchRef = useRef(null)
     const [page, setPage] = useState(1)
     const perPage = 12
-    const { cart, setCart, showCart, setShowCart, removeFromCart } = useCart()
+    const { addToCart } = useCart()
     const {
         data: booksResp,
         error,
@@ -162,36 +162,36 @@ const Dashboard = () => {
         mutate() // refresh daftar buku
         setModalType(null)
     }
-    const addToCart = book => {
-        const exist = cart.find(item => item.id === book.id)
+    // const addToCart = book => {
+    //     const exist = cart.find(item => item.id === book.id)
 
-        if (exist) {
-            if (exist.quantity >= book.available) {
-                toast.error(
-                    <span>
-                        ⚠️ Stok Buku '<b>{book.title}</b>' hanya{' '}
-                        {book.available}
-                    </span>,
-                )
-                return
-            }
-            setCart(
-                cart.map(item =>
-                    item.id === book.id
-                        ? { ...item, quantity: item.quantity + 1 }
-                        : item,
-                ),
-            )
-            toast.success(`📚 Tambah 1 ${book.title} ke cart`)
-        } else {
-            if (book.available <= 0) {
-                toast.error('⚠️ Stok habis, tidak bisa ditambahkan')
-                return
-            }
-            setCart([...cart, { ...book, quantity: 1 }])
-            toast.success(`📚 ${book.title} dimasukkan ke cart`)
-        }
-    }
+    //     if (exist) {
+    //         if (exist.quantity >= book.available) {
+    //             toast.error(
+    //                 <span>
+    //                     ⚠️ Stok Buku '<b>{book.title}</b>' hanya{' '}
+    //                     {book.available}
+    //                 </span>,
+    //             )
+    //             return
+    //         }
+    //         setCart(
+    //             cart.map(item =>
+    //                 item.id === book.id
+    //                     ? { ...item, quantity: item.quantity + 1 }
+    //                     : item,
+    //             ),
+    //         )
+    //         toast.success(`📚 Tambah 1 ${book.title} ke cart`)
+    //     } else {
+    //         if (book.available <= 0) {
+    //             toast.error('⚠️ Stok habis, tidak bisa ditambahkan')
+    //             return
+    //         }
+    //         setCart([...cart, { ...book, quantity: 1 }])
+    //         toast.success(`📚 ${book.title} dimasukkan ke cart`)
+    //     }
+    // }
     // const removeFromCart = id => {
     //     setCart(cart.filter(item => item.id !== id))
     //     toast.success('Item dihapus dari cart')
@@ -403,7 +403,7 @@ const Dashboard = () => {
                                         </div>
                                     </div>
                                 ))}
-                                
+
                             </div>
                         </div>
 

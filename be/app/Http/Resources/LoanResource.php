@@ -23,6 +23,7 @@ class LoanResource extends JsonResource
                 'id'     => $this->book->id,
                 'title'  => $this->book->title,
                 'author' => $this->book->author,
+                'harga' => $this->book->harga,
             ],
             'borrowed_at' => $this->borrowed_at,
             'return_date' => $this->return_date,

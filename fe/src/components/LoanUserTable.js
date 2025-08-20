@@ -67,6 +67,10 @@ export default function LoanUserTable() {
         }
     }
 
+    const grandTotal = loans.reduce((sum, loan) => {
+        return sum + Number(loan.book.harga) * loan.quantity
+    }, 0)
+
     return (
         <div className="relative">
             {isFocused && search.length === 0 && (
@@ -105,65 +109,80 @@ export default function LoanUserTable() {
                                 Return Date
                             </th>
                             <th className="p-2 border text-center">Status</th>
-                            {/* <th className="p-2 border text-center">Actions</th> */}
+                            <th className="p-2 border text-center">Quantity</th>
+                            <th className="p-2 border text-center">
+                                Harga satuan
+                            </th>
+                            <th className="p-2 border text-center">
+                                Total Harga
+                            </th>
                         </tr>
                     </thead>
                     <tbody>
                         {loans.length > 0 ? (
-                            loans.map((loan, index) => (
-                                <tr key={loan.id} className="hover:bg-gray-50">
+                            <>
+                                {loans.map((loan, index) => (
+                                    <tr
+                                        key={loan.id}
+                                        className="hover:bg-gray-50">
+                                        <td className="p-2 border text-center">
+                                            {(meta.from ??
+                                                (page - 1) * perPage + 1) +
+                                                index}
+                                        </td>
+                                        <td className="p-2 border">
+                                            {loan.book.title}
+                                        </td>
+                                        <td className="p-2 border text-center">
+                                            {loan.borrowed_at}
+                                        </td>
+                                        <td className="p-2 border text-center">
+                                            {loan.return_date || '-'}
+                                        </td>
+                                        <td className="p-2 border text-center capitalize">
+                                            {loan.status}
+                                        </td>
+                                        <td className="p-2 border text-center">
+                                            {loan.quantity}
+                                        </td>
+                                        <td className="p-2 border text-center">
+                                            {new Intl.NumberFormat('id-ID', {
+                                                style: 'currency',
+                                                currency: 'IDR',
+                                                minimumFractionDigits: 2,
+                                            }).format(loan.book.harga)}
+                                        </td>
+                                        <td className="p-2 border text-center">
+                                            {new Intl.NumberFormat('id-ID', {
+                                                style: 'currency',
+                                                currency: 'IDR',
+                                                minimumFractionDigits: 2,
+                                            }).format(
+                                                loan.book.harga * loan.quantity,
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))}
+
+                                {/* === Baris TOTAL === */}
+                                <tr className="bg-gray-100 font-bold">
+                                    <td
+                                        colSpan={7}
+                                        className="p-2 border text-right">
+                                        TOTAL SEMUA
+                                    </td>
                                     <td className="p-2 border text-center">
-                                        {(meta.from ??
-                                            (page - 1) * perPage + 1) + index}
+                                        {new Intl.NumberFormat('id-ID', {
+                                            style: 'currency',
+                                            currency: 'IDR',
+                                            minimumFractionDigits: 2,
+                                        }).format(meta.grand_total)}
                                     </td>
-                                    <td className="p-2 border">
-                                        {(() => {
-                                            const title = loan.book.title
-                                            const term = debouncedSearch
-                                                .trim()
-                                                .toLowerCase()
-                                            if (!term) return title
-                                            const parts = title.split(
-                                                new RegExp(`(${term})`, 'gi'),
-                                            )
-                                            return parts.map((part, idx) =>
-                                                part.toLowerCase() === term ? (
-                                                    <b
-                                                        key={idx}
-                                                        className="text-blue-600">
-                                                        {part}
-                                                    </b>
-                                                ) : (
-                                                    part
-                                                ),
-                                            )
-                                        })()}
-                                    </td>
-                                    <td className="p-2 border text-center">
-                                        {loan.borrowed_at}
-                                    </td>
-                                    <td className="p-2 border text-center">
-                                        {loan.return_date || '-'}
-                                    </td>
-                                    <td className="p-2 border text-center capitalize">
-                                        {loan.status}
-                                    </td>
-                                    {/* <td className="p-2 border text-center">
-                                        {loan.status === 'borrowed' && (
-                                            <button
-                                                onClick={() =>
-                                                    handleReturn(loan.id)
-                                                }
-                                                className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600">
-                                                Return
-                                            </button>
-                                        )}
-                                    </td> */}
                                 </tr>
-                            ))
+                            </>
                         ) : (
                             <tr>
-                                <td colSpan={6} className="p-2 text-center">
+                                <td colSpan={8} className="p-2 text-center">
                                     No borrowed books
                                 </td>
                             </tr>
@@ -200,4 +219,3 @@ export default function LoanUserTable() {
         </div>
     )
 }
-
