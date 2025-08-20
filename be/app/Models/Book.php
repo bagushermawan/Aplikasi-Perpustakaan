@@ -19,7 +19,10 @@ class Book extends Model
 
     public function availableStock()
     {
-        $borrowedCount = $this->loans()->where('status', 'borrowed')->count();
-        return $this->stock - $borrowedCount;
+        $borrowedQty = $this->loans()
+            ->where('status', 'borrowed')
+            ->sum('quantity');
+
+        return $this->stock - $borrowedQty;
     }
 }

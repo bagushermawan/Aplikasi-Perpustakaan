@@ -15,7 +15,6 @@ export default function LoanUserTable() {
     const [page, setPage] = useState(1)
     const perPage = 5
 
-    // ambil user login
     useEffect(() => {
         api.get('/api/auth/user').then(res => setUser(res.data))
     }, [])
@@ -41,13 +40,11 @@ export default function LoanUserTable() {
         },
     )
 
-    // debounce search
     useEffect(() => {
         const t = setTimeout(() => setDebouncedSearch(search), 500)
         return () => clearTimeout(t)
     }, [search])
 
-    // reset page saat keyword berubah
     useEffect(() => {
         setPage(1)
     }, [debouncedSearch])

@@ -72,13 +72,14 @@ class LoanController extends Controller
             'book_id'     => 'required|exists:books,id',
             'borrowed_at' => 'required|date',
             'return_date' => 'nullable|date|after_or_equal:borrowed_at',
-            'status'      => 'required|in:available,borrowed,returned',
+            'status'      => 'required|in:borrowed,returned',
+            'quantity'    => 'required|integer|min:1',
         ]);
 
         if (empty($data['return_date'])) {
             $data['return_date'] = \Carbon\Carbon::parse($data['borrowed_at'])->addDays(3);
         }
-        
+
         $loan = Loan::create($data);
 
         return new LoanResource($loan->load(['user', 'book']));
@@ -102,7 +103,8 @@ class LoanController extends Controller
             'book_id'     => 'sometimes|exists:books,id',
             'borrowed_at' => 'sometimes|date',
             'return_date' => 'nullable|date|after_or_equal:borrowed_at',
-            'status'      => 'sometimes|in:available,borrowed,returned',
+            'status'      => 'sometimes|in:borrowed,returned',
+            'quantity'    => 'required|integer|min:1',
         ]);
 
         $loan->update($data);

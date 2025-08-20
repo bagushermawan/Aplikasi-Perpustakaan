@@ -23,7 +23,7 @@ class BookResource extends JsonResource
             'title'     => $this->title,
             'author'    => $this->author,
             'stock'     => $this->stock,
-            'borrowed'  => $this->loans()->where('status', 'borrowed')->count(),
+            'borrowed'  => $this->loans()->where('status', 'borrowed')->sum('quantity'),
             'available' => $this->availableStock(),
             'cover'     => $cover,
             'harga'     => $this->harga,

@@ -17,6 +17,7 @@ class Loan extends Model
         'borrowed_at',
         'return_date',
         'status',
+        'quantity',
     ];
 
     public function user()

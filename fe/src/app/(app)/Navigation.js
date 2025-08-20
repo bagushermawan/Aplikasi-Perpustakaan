@@ -10,8 +10,12 @@ import { useAuth } from '@/hooks/auth'
 import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import api from '@/lib/axios'
+import { FaShoppingCart } from 'react-icons/fa'
+import { useCart } from './context/CartContext'
 
 const Navigation = ({ user }) => {
+    const { cart, showCart, setShowCart } = useCart()
+    const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0)
     const { logout } = useAuth()
     const { editProfile } = useAuth()
 
@@ -56,7 +60,20 @@ const Navigation = ({ user }) => {
                     </div>
 
                     {/* Settings Dropdown */}
-                    <div className="hidden sm:flex sm:items-center sm:ml-6">
+                    <div className="hidden sm:flex sm:items-center sm:ml-6 gap-4">
+                        <button
+                            onClick={() => setShowCart(!showCart)}
+                            className="relative p-2 bg-gray-200 hover:bg-gray-300 rounded"
+                            title="Lihat Cart">
+                            <FaShoppingCart className="text-xl text-gray-700" />
+                            {totalItems > 0 && (
+                                <span
+                                    className="absolute -top-1 -right-1 bg-red-600 text-white
+                            text-xs font-bold px-1.5 py-0.5 rounded-full">
+                                    {totalItems}
+                                </span>
+                            )}
+                        </button>
                         <Dropdown
                             align="right"
                             width="48"

@@ -21,12 +21,19 @@ class LoanFactory extends Factory
         $borrowedAt = $this->faker->dateTimeBetween('now', '+2 days');
         $returnDate = (clone $borrowedAt)->modify('+' . rand(1, 7) . ' days');
 
+        $book = Book::inRandomOrder()->first();
+
+        $qty = $book
+            ? $this->faker->numberBetween(1, max(1, $book->stock))
+            : 1;
+
         return [
             'user_id'     => User::inRandomOrder()->value('id'),
-            'book_id'     => Book::inRandomOrder()->value('id'),
+            'book_id'     => $book?->id,
             'borrowed_at' => $borrowedAt,
             'return_date' => $returnDate,
             'status'      => $this->faker->randomElement(['borrowed', 'returned']),
+            'quantity'    => $qty,
         ];
     }
 }

@@ -5,6 +5,7 @@ import useSWR from 'swr'
 import api from '@/lib/axios'
 import { useEffect, useState, useRef } from 'react'
 import toast from 'react-hot-toast'
+import { useCart } from '../context/CartContext'
 
 const fetcher = url => api.get(url).then(res => res.data)
 const Dashboard = () => {
@@ -17,7 +18,7 @@ const Dashboard = () => {
     const searchRef = useRef(null)
     const [page, setPage] = useState(1)
     const perPage = 12
-    const [cart, setCart] = useState([])
+    const { cart, setCart, showCart, setShowCart, removeFromCart } = useCart()
     const {
         data: booksResp,
         error,
@@ -163,7 +164,17 @@ const Dashboard = () => {
     }
     const addToCart = book => {
         const exist = cart.find(item => item.id === book.id)
+
         if (exist) {
+            if (exist.quantity >= book.available) {
+                toast.error(
+                    <span>
+                        ⚠️ Stok Buku '<b>{book.title}</b>' hanya{' '}
+                        {book.available}
+                    </span>,
+                )
+                return
+            }
             setCart(
                 cart.map(item =>
                     item.id === book.id
@@ -171,48 +182,49 @@ const Dashboard = () => {
                         : item,
                 ),
             )
+            toast.success(`📚 Tambah 1 ${book.title} ke cart`)
         } else {
+            if (book.available <= 0) {
+                toast.error('⚠️ Stok habis, tidak bisa ditambahkan')
+                return
+            }
             setCart([...cart, { ...book, quantity: 1 }])
+            toast.success(`📚 ${book.title} dimasukkan ke cart`)
         }
-        toast.success(`📚 ${book.title} ditambahkan ke cart`)
     }
-    const removeFromCart = id => {
-        setCart(cart.filter(item => item.id !== id))
-        toast.success('Item dihapus dari cart')
-    }
-    const handleCheckout = async () => {
-        if (cart.length === 0) {
-            toast.error('Keranjang masih kosong')
-            return
-        }
+    // const removeFromCart = id => {
+    //     setCart(cart.filter(item => item.id !== id))
+    //     toast.success('Item dihapus dari cart')
+    // }
+    // const handleCheckout = async () => {
+    //     if (cart.length === 0) {
+    //         toast.error('Keranjang masih kosong')
+    //         return
+    //     }
 
-        try {
-            await toast.promise(
-                Promise.all(
-                    cart.map(book => {
-                        const newLoan = {
-                            user_id: user.id,
-                            book_id: book.id,
-                            borrowed_at: new Date().toISOString().split('T')[0],
-                            return_date: null,
-                            status: 'borrowed',
-                        }
-                        return api.post('/api/perpus/loans', newLoan)
-                    }),
-                ),
-                {
-                    loading: '⏳ Checkout...',
-                    success: '✅ Berhasil checkout!',
-                    error: '❌ Gagal checkout',
-                },
-            )
+    //     await toast.promise(
+    //         Promise.all(
+    //             cart.map(item =>
+    //                 api.post('/api/perpus/loans', {
+    //                     user_id: user.id,
+    //                     book_id: item.id,
+    //                     borrowed_at: new Date().toISOString().split('T')[0],
+    //                     return_date: null,
+    //                     status: 'borrowed',
+    //                     quantity: item.quantity, // ✅ kirim ke backend
+    //                 }),
+    //             ),
+    //         ),
+    //         {
+    //             loading: '⏳ Proses checkout...',
+    //             success: '✅ Checkout berhasil!',
+    //             error: '❌ Gagal checkout',
+    //         },
+    //     )
 
-            setCart([]) // kosongkan cart
-            mutate() // refresh daftar buku
-        } catch (err) {
-            console.error(err)
-        }
-    }
+    //     setCart([])
+    //     mutate()
+    // }
 
     return (
         <>
@@ -391,151 +403,7 @@ const Dashboard = () => {
                                         </div>
                                     </div>
                                 ))}
-                                {/* Floating Cart */}
-                                <div className="fixed top-28 right-3  w-80 bg-white shadow-lg border-l z-40 flex flex-col">
-                                    <div className="p-4 border-b bg-gray-100 flex justify-between items-center">
-                                        <h3 className="font-bold">🛒 Cart</h3>
-                                        <button
-                                            onClick={() => setCart([])}
-                                            className="text-red-500 text-sm">
-                                            Clear
-                                        </button>
-                                    </div>
-                                    <div className="flex-1 overflow-y-auto p-4 space-y-2">
-                                        {cart.length === 0 ? (
-                                            <p className="text-gray-500 text-sm">
-                                                Cart masih kosong
-                                            </p>
-                                        ) : (
-                                            cart.map(item => (
-                                                <div
-                                                    key={item.id}
-                                                    className="border-b pb-2 flex flex-col gap-1">
-                                                    {/* Judul */}
-                                                    <div className="flex justify-between items-center">
-                                                        <div>
-                                                            <p className="font-medium text-sm">
-                                                                {item.title}
-                                                            </p>
-                                                            <p className="text-xs text-gray-600">
-                                                                by {item.author}
-                                                            </p>
-                                                        </div>
-                                                        <button
-                                                            onClick={() =>
-                                                                removeFromCart(
-                                                                    item.id,
-                                                                )
-                                                            }
-                                                            className="text-xs text-red-600">
-                                                            Hapus
-                                                        </button>
-                                                    </div>
-
-                                                    {/* Quantity control */}
-                                                    <div className="flex justify-between items-center text-sm">
-                                                        {/* Harga × Quantity */}
-                                                        <div className="font-bold">
-                                                            {new Intl.NumberFormat(
-                                                                'id-ID',
-                                                                {
-                                                                    style: 'currency',
-                                                                    currency:
-                                                                        'IDR',
-                                                                    minimumFractionDigits: 2,
-                                                                },
-                                                            ).format(
-                                                                item.harga *
-                                                                    item.quantity,
-                                                            )}
-                                                        </div>
-                                                        <div className="flex items-center gap-2">
-                                                            <button
-                                                                disabled={
-                                                                    item.quantity <=
-                                                                    1
-                                                                }
-                                                                onClick={() =>
-                                                                    setCart(
-                                                                        cart.map(
-                                                                            b =>
-                                                                                b.id ===
-                                                                                item.id
-                                                                                    ? {
-                                                                                          ...b,
-                                                                                          quantity:
-                                                                                              b.quantity -
-                                                                                              1,
-                                                                                      }
-                                                                                    : b,
-                                                                        ),
-                                                                    )
-                                                                }
-                                                                className="w-6 h-6 bg-gray-300 rounded flex items-center justify-center disabled:opacity-50">
-                                                                -
-                                                            </button>
-                                                            <span>
-                                                                {item.quantity}
-                                                            </span>
-                                                            <button
-                                                                disabled={
-                                                                    item.quantity >=
-                                                                    item.stock
-                                                                } // 🔥 batasi stock
-                                                                onClick={() =>
-                                                                    setCart(
-                                                                        cart.map(
-                                                                            b =>
-                                                                                b.id ===
-                                                                                item.id
-                                                                                    ? {
-                                                                                          ...b,
-                                                                                          quantity:
-                                                                                              b.quantity +
-                                                                                              1,
-                                                                                      }
-                                                                                    : b,
-                                                                        ),
-                                                                    )
-                                                                }
-                                                                className="w-6 h-6 bg-gray-300 rounded flex items-center justify-center disabled:opacity-50">
-                                                                +
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            ))
-                                        )}
-                                    </div>
-                                    <div className="p-4 border-t space-y-2">
-                                        <div className="flex justify-between font-semibold">
-                                            <span>Total:</span>
-                                            <span>
-                                                {new Intl.NumberFormat(
-                                                    'id-ID',
-                                                    {
-                                                        style: 'currency',
-                                                        currency: 'IDR',
-                                                        minimumFractionDigits: 2,
-                                                    },
-                                                ).format(
-                                                    cart.reduce(
-                                                        (sum, item) =>
-                                                            sum +
-                                                            item.harga *
-                                                                item.quantity,
-                                                        0,
-                                                    ),
-                                                )}
-                                            </span>
-                                        </div>
-                                        <button
-                                            onClick={handleCheckout}
-                                            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded text-sm">
-                                            Checkout
-                                        </button>
-                                    </div>
-                                </div>
+                                
                             </div>
                         </div>
 

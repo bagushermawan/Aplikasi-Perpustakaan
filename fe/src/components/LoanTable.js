@@ -256,6 +256,7 @@ export default function LoansTable() {
                                             )}
                                     </div>
                                 </th>
+                                <th className="p-2 border">Quantity</th>
                                 <th className="p-2 border">Actions</th>
                             </tr>
                         </thead>
@@ -322,6 +323,9 @@ export default function LoansTable() {
                                     </td>
                                     <td className="p-2 border capitalize text-center">
                                         {loan.status}
+                                    </td>
+                                    <td className="p-2 border capitalize text-center">
+                                        {loan.quantity}
                                     </td>
                                     <td className="p-2 border space-x-2 text-center">
                                         <button

@@ -4,6 +4,7 @@ import { useAuth } from '@/hooks/auth'
 import Navigation from '@/app/(app)/Navigation'
 import Loading from '@/app/(app)/Loading'
 import { Toaster } from 'react-hot-toast'
+import Cart from '@/components/Cart'
 
 const AppLayout = ({ children }) => {
     const { user } = useAuth({ middleware: 'auth' })
@@ -18,6 +19,8 @@ const AppLayout = ({ children }) => {
             <Toaster position="top-right" reverseOrder={false} />
 
             <main>{children}</main>
+
+            <Cart />
         </div>
     )
 }
