@@ -2,6 +2,7 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
 use App\Http\Controllers\Api\BookController;
 use App\Http\Controllers\Api\LoanController;
 use App\Http\Controllers\Auth\RoleController;
@@ -14,14 +15,19 @@ Route::middleware(['auth:sanctum'])->get('/user', function (Request $request) {
 });
 
 Route::middleware('auth:sanctum')->get('/auth/user', function (Request $request) {
+    $user = $request->user();
+
     return response()->json([
-        'id' => $request->user()->id,
-        'name' => $request->user()->name,
-        'email' => $request->user()->email,
-        'role' => $request->user()->getRoleNames()->first(),
+        'id'         => $user->id,
+        'name'       => $user->name,
+        'email'      => $user->email,
+        'role'       => $user->getRoleNames()->first(),
+        'avatar'     => $user->avatar, // simpan path relativenya
+        'avatar_url' => $user->avatar
+            ? asset(Storage::url($user->avatar))
+            : null,
     ]);
 });
-
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user/profile', [UserController::class, 'show']);
     Route::put('/user/profile', [UserController::class, 'update']);

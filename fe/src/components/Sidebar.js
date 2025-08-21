@@ -1,9 +1,22 @@
 'use client'
+
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import useSWR from 'swr'
 import api from '@/lib/axios'
 import { useState } from 'react'
+import {
+    AppShell,
+    ScrollArea,
+    Group,
+    Text,
+    UnstyledButton,
+    ThemeIcon,
+    Tooltip,
+    Box,
+    Stack,
+    rem,
+} from '@mantine/core'
 import {
     FaUsers,
     FaBook,
@@ -14,12 +27,12 @@ import {
 
 const fetcher = url => api.get(url).then(res => res.data)
 
-const Sidebar = () => {
+export default function Layout({ children }) {
     const pathname = usePathname()
     const { data: me, error, isLoading } = useSWR('/api/auth/user', fetcher)
 
     const [collapsed, setCollapsed] = useState(false)
-    const [pinned, setPinned] = useState(false) 
+    const [pinned, setPinned] = useState(false)
 
     const userRole = me?.role
 
@@ -28,103 +41,163 @@ const Sidebar = () => {
             name: 'Dashboard',
             href: '/perpus',
             roles: ['admin', 'user'],
-            icon: <FaHome />,
+            icon: <FaHome size={16} />,
         },
         {
             name: 'All Users',
             href: '/perpus/users',
             roles: ['admin'],
-            icon: <FaUsers />,
+            icon: <FaUsers size={16} />,
         },
         {
             name: 'All Books',
             href: '/perpus/books',
             roles: ['admin'],
-            icon: <FaBook />,
+            icon: <FaBook size={16} />,
         },
         {
             name: 'Loans',
             href: '/perpus/loans',
             roles: ['admin', 'user'],
-            icon: <FaClipboardList />,
+            icon: <FaClipboardList size={16} />,
         },
     ]
 
-    if (isLoading)
-        return <div className="p-4 text-gray-600">Loading menu...</div>
-    if (error)
-        return <div className="p-4 text-red-500">Failed to load user</div>
-
     return (
-        <div
-            onMouseEnter={() => !pinned && setCollapsed(false)}
-            onMouseLeave={() => !pinned && setCollapsed(true)}
-            className={`
-        ${collapsed ? 'w-20' : 'w-64'}
-        bg-gradient-to-b from-gray-800 to-gray-900 text-gray-200
-        h-screen p-4 shadow-lg flex flex-col transition-all duration-300
-      `}>
-            {/* Header / Logo */}
-            <div
-                className={`flex items-center mb-8 px-2 transition-all duration-300 ${collapsed ? 'justify-center' : ''}`}>
-                <span className="text-2xl mr-2">📚</span>
-                {!collapsed && (
-                    <Link
-                        href="/perpus"
-                        className="text-xl font-bold tracking-wide hover:text-white">
-                        Perpustakaan
-                    </Link>
-                )}
-            </div>
+        <AppShell
+            // atur navbar behavior
+            navbar={{
+                width: collapsed ? 80 : 240,
+                breakpoint: 'sm',
+                collapsed: { mobile: false },
+            }}
+            padding="md">
+            {/* Sidebar */}
+            <AppShell.Navbar
+                p="md"
+                onMouseEnter={() => !pinned && setCollapsed(false)}
+                onMouseLeave={() => !pinned && setCollapsed(true)}>
+                {/* Header / Logo */}
+                <Box mb="lg">
+                    <Group>
+                        <Text size="xl">📚</Text>
+                        {!collapsed && (
+                            <Text
+                                fw={700}
+                                size="lg"
+                                component={Link}
+                                href="/perpus">
+                                Perpustakaan
+                            </Text>
+                        )}
+                    </Group>
+                </Box>
 
-            {/* Toggle button */}
-            <div className="mb-4">
-                <button
-                    onClick={() => {
-                        setPinned(!pinned)
-                        setCollapsed(pinned ? true : !collapsed)
-                    }}
-                    className={`
-                        w-full flex items-center ${collapsed ? 'justify-center p-2' : 'justify-start px-4 py-2'}
-                        bg-gray-700 rounded hover:bg-gray-600 gap-2 transition-all duration-300
-                        `}>
+                {/* Collapse / Pin toggle */}
+                <Box mb="sm">
+                    <UnstyledButton
+                        onClick={() => {
+                            setPinned(!pinned)
+                            setCollapsed(pinned ? true : !collapsed)
+                        }}
+                        style={{ width: '100%' }}>
+                        <Group
+                            p="xs"
+                            style={{
+                                borderRadius: rem(6),
+                                backgroundColor: '#374151',
+                                justifyContent: collapsed
+                                    ? 'center'
+                                    : 'flex-start',
+                                color: '#fff',
+                            }}>
                             <FaBars />
-                    {!collapsed && (
-                        <span className="text-sm font-medium">Menu</span>
-                    )}
-                    </button>
-            </div>
+                            {!collapsed && <Text size="sm">Menu</Text>}
+                        </Group>
+                    </UnstyledButton>
+                </Box>
 
-            {/* Menu */}
-            <ul className="space-y-1 flex-1">
-                {menus
-                    .filter(
-                        menu => !menu.roles || menu.roles.includes(userRole),
-                    )
-                    .map(menu => {
-                        const active = pathname === menu.href
-                        return (
-                            <li key={menu.href}>
-                                <Link
-                                    href={menu.href}
-                                    className={`
-                    flex items-center gap-3 px-3 py-2 rounded-md transition-colors duration-200
-                    ${active ? 'bg-blue-600 text-white shadow' : 'hover:bg-gray-700 hover:text-white'}
-                    ${collapsed ? 'justify-center' : ''}
-                  `}>
-                                    <span className="text-lg">{menu.icon}</span>
-                                    {!collapsed && (
-                                        <span className="font-medium">
-                                            {menu.name}
-                                        </span>
-                                    )}
-                                </Link>
-                            </li>
-                        )
-                    })}
-            </ul>
-        </div>
+                {/* Menu list */}
+                <ScrollArea style={{ flexGrow: 1 }}>
+                    <Stack gap={4}>
+                        {isLoading && (
+                            <Text size="sm" c="dimmed">
+                                Loading menu...
+                            </Text>
+                        )}
+                        {error && (
+                            <Text size="sm" c="red">
+                                Failed to load user
+                            </Text>
+                        )}
+                        {!isLoading &&
+                            !error &&
+                            menus
+                                .filter(
+                                    menu =>
+                                        !menu.roles ||
+                                        menu.roles.includes(userRole),
+                                )
+                                .map(menu => {
+                                    const active = pathname === menu.href
+                                    const Item = (
+                                        <Group
+                                            key={menu.href}
+                                            component={Link}
+                                            href={menu.href}
+                                            align="center"
+                                            p="xs"
+                                            style={{
+                                                textDecoration: 'none',
+                                                borderRadius: rem(6),
+                                                backgroundColor: active
+                                                    ? '#2563eb'
+                                                    : 'transparent',
+                                                color: active
+                                                    ? '#fff'
+                                                    : undefined,
+                                                justifyContent: collapsed
+                                                    ? 'center'
+                                                    : 'flex-start',
+                                            }}>
+                                            <ThemeIcon
+                                                variant={
+                                                    active ? 'filled' : 'light'
+                                                }
+                                                size="sm"
+                                                radius="md"
+                                                color={
+                                                    active ? 'blue' : 'gray'
+                                                }>
+                                                {menu.icon}
+                                            </ThemeIcon>
+                                            {!collapsed && (
+                                                <Text size="sm">
+                                                    {menu.name}
+                                                </Text>
+                                            )}
+                                        </Group>
+                                    )
+
+                                    return collapsed ? (
+                                        <Tooltip
+                                            label={menu.name}
+                                            position="right"
+                                            withArrow
+                                            key={menu.href}>
+                                            {Item}
+                                        </Tooltip>
+                                    ) : (
+                                        Item
+                                    )
+                                })}
+                    </Stack>
+                </ScrollArea>
+            </AppShell.Navbar>
+
+            {/* Konten utama */}
+            <AppShell.Main>{children}</AppShell.Main>
+        </AppShell>
     )
 }
 
-export default Sidebar

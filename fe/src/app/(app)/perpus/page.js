@@ -56,13 +56,13 @@ const PerpusPage = () => {
     return (
         <>
             {/* <Header title="Perpustakaan" /> */}
-            <div className="flex">
+            <div className="py-12 flex">
                 {/* Sidebar */}
-                <Sidebar />
+                {/* <Sidebar /> */}
 
                 {/* Main Content */}
-                <div className="flex-1 p-6">
-                    <div className="p-5 bg-white rounded-lg">
+                <div className="flex-1 max-w-7xl mx-auto sm:px-6 lg:px-8">
+                    <div className="p-6 bg-white rounded-lg">
                         <h1 className="text-2xl font-bold mb-6">
                             Dashboard Perpustakaan
                         </h1>

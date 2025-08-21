@@ -1,24 +1,43 @@
 'use client'
 
-import Header from '@/app/(app)/Header'
 import useSWR from 'swr'
 import api from '@/lib/axios'
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 import { useCart } from '../context/CartContext'
+import { useSearchParams } from 'next/navigation'
 
 const fetcher = url => api.get(url).then(res => res.data)
+
 const Dashboard = () => {
     const [modalType, setModalType] = useState(null)
     const [user, setUser] = useState(null)
     const [selectedBook, setSelectedBook] = useState(null)
-    const [search, setSearch] = useState('')
-    const [debouncedSearch, setDebouncedSearch] = useState('')
-    const [isFocused, setIsFocused] = useState(false)
-    const searchRef = useRef(null)
+
+    const searchParams = useSearchParams()
+    const rawSearch = searchParams.get('search') || ''
+    const [debouncedSearch, setDebouncedSearch] = useState(rawSearch)
+
     const [page, setPage] = useState(1)
     const perPage = 8
     const { addToCart } = useCart()
+
+    // Ambil user
+    useEffect(() => {
+        api.get('/api/auth/user').then(res => setUser(res.data))
+    }, [])
+
+    // Debounce nilai search dari URL
+    useEffect(() => {
+        const t = setTimeout(() => setDebouncedSearch(rawSearch), 300)
+        return () => clearTimeout(t)
+    }, [rawSearch])
+
+    // Reset ke halaman 1 saat search berubah (debounced)
+    useEffect(() => {
+        setPage(1)
+    }, [debouncedSearch])
+
     const {
         data: booksResp,
         error,
@@ -37,33 +56,6 @@ const Dashboard = () => {
             dedupingInterval: 500,
         },
     )
-
-    useEffect(() => {
-        api.get('/api/auth/user').then(res => setUser(res.data))
-    }, [])
-    useEffect(() => {
-        const handleKey = e => {
-            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
-                e.preventDefault()
-                setIsFocused(true)
-                searchRef.current?.focus()
-            }
-        }
-        window.addEventListener('keydown', handleKey)
-        return () => window.removeEventListener('keydown', handleKey)
-    }, [])
-    useEffect(() => {
-        if (search.length > 0) {
-            setIsFocused(false)
-        }
-    }, [search])
-    useEffect(() => {
-        const t = setTimeout(() => setDebouncedSearch(search), 300)
-        return () => clearTimeout(t)
-    }, [search])
-    useEffect(() => {
-        setPage(1)
-    }, [debouncedSearch])
 
     if (error) return <div className="p-6">⚠️ Gagal memuat data buku</div>
     const books = booksResp?.data || []
@@ -99,6 +91,7 @@ const Dashboard = () => {
             toast.error('❌ Gagal menambah buku')
         }
     }
+
     const handleEdit = async e => {
         e.preventDefault()
         try {
@@ -131,6 +124,7 @@ const Dashboard = () => {
             toast.error('❌ Gagal update buku')
         }
     }
+
     const handleDelete = async id => {
         try {
             await toast.promise(api.delete(`/api/perpus/books/${id}`), {
@@ -146,6 +140,7 @@ const Dashboard = () => {
             toast.error('❌ Gagal menghapus buku')
         }
     }
+
     const handleBorrow = async book => {
         const newLoan = {
             user_id: user.id,
@@ -159,104 +154,21 @@ const Dashboard = () => {
             success: '📖 Buku berhasil dipinjam!',
             error: '❌ Gagal meminjam buku',
         })
-        mutate() // refresh daftar buku
+        mutate()
         setModalType(null)
     }
-    // const addToCart = book => {
-    //     const exist = cart.find(item => item.id === book.id)
-
-    //     if (exist) {
-    //         if (exist.quantity >= book.available) {
-    //             toast.error(
-    //                 <span>
-    //                     ⚠️ Stok Buku '<b>{book.title}</b>' hanya{' '}
-    //                     {book.available}
-    //                 </span>,
-    //             )
-    //             return
-    //         }
-    //         setCart(
-    //             cart.map(item =>
-    //                 item.id === book.id
-    //                     ? { ...item, quantity: item.quantity + 1 }
-    //                     : item,
-    //             ),
-    //         )
-    //         toast.success(`📚 Tambah 1 ${book.title} ke cart`)
-    //     } else {
-    //         if (book.available <= 0) {
-    //             toast.error('⚠️ Stok habis, tidak bisa ditambahkan')
-    //             return
-    //         }
-    //         setCart([...cart, { ...book, quantity: 1 }])
-    //         toast.success(`📚 ${book.title} dimasukkan ke cart`)
-    //     }
-    // }
-    // const removeFromCart = id => {
-    //     setCart(cart.filter(item => item.id !== id))
-    //     toast.success('Item dihapus dari cart')
-    // }
-    // const handleCheckout = async () => {
-    //     if (cart.length === 0) {
-    //         toast.error('Keranjang masih kosong')
-    //         return
-    //     }
-
-    //     await toast.promise(
-    //         Promise.all(
-    //             cart.map(item =>
-    //                 api.post('/api/perpus/loans', {
-    //                     user_id: user.id,
-    //                     book_id: item.id,
-    //                     borrowed_at: new Date().toISOString().split('T')[0],
-    //                     return_date: null,
-    //                     status: 'borrowed',
-    //                     quantity: item.quantity, // ✅ kirim ke backend
-    //                 }),
-    //             ),
-    //         ),
-    //         {
-    //             loading: '⏳ Proses checkout...',
-    //             success: '✅ Checkout berhasil!',
-    //             error: '❌ Gagal checkout',
-    //         },
-    //     )
-
-    //     setCart([])
-    //     mutate()
-    // }
 
     return (
         <>
             <div className="py-12 relative">
-                {isFocused && search.length === 0 && (
-                    <div className="fixed inset-0 backdrop-blur-sm bg-black/30 z-10"></div>
-                )}
                 <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
                     <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                         <div className="p-6 bg-white border-b border-gray-200">
-                            <h2 className="text-xl font-bold mb-4">
-                                📚 Daftar Buku
-                            </h2>
-                            {/* Search */}
-                            <div className="grid grid-cols-6 gap-2 mb-4">
-                                <input
-                                    ref={searchRef}
-                                    type="text"
-                                    placeholder="Cari Buku ... (Ctrl+K)"
-                                    value={search}
-                                    onChange={e => setSearch(e.target.value)}
-                                    onFocus={() => setIsFocused(true)}
-                                    onBlur={() => {
-                                        if (search.length === 0)
-                                            setIsFocused(false)
-                                    }}
-                                    className={`px-3 py-2 border rounded relative z-20 ${
-                                        user?.role === 'admin'
-                                            ? 'col-span-5'
-                                            : 'col-span-6'
-                                    }`}
-                                />
+                            {/* Header + Add Book (admin) */}
+                            <div className="flex items-center justify-between mb-4">
+                                <h2 className="text-xl font-bold">
+                                    📚 Daftar Buku
+                                </h2>
                                 {user?.role === 'admin' && (
                                     <button
                                         onClick={() => {
@@ -267,17 +179,19 @@ const Dashboard = () => {
                                             })
                                             setModalType('add')
                                         }}
-                                        className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 w-full z-30">
+                                        className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">
                                         Add Book
                                     </button>
                                 )}
                             </div>
+
                             {isValidating && booksResp && (
                                 <div className="text-xs text-gray-500 mb-3">
                                     Searching…
                                 </div>
                             )}
-                            {/* Table */}
+
+                            {/* Grid Buku */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                                 {books.map(book => (
                                     <div
@@ -298,6 +212,7 @@ const Dashboard = () => {
                                                 </div>
                                             )}
                                         </div>
+
                                         <h3 className="text-lg font-semibold">
                                             {(() => {
                                                 const title = book.title
@@ -307,7 +222,6 @@ const Dashboard = () => {
                                                         .toLowerCase()
                                                 if (!searchTerm) return title
 
-                                                // pecah string berdasarkan searchTerm
                                                 const parts = title.split(
                                                     new RegExp(
                                                         `(${searchTerm})`,
@@ -328,9 +242,38 @@ const Dashboard = () => {
                                                 )
                                             })()}
                                         </h3>
+
                                         <p className="text-sm text-gray-600">
-                                            by {book.author}
+                                            by{' '}
+                                            {(() => {
+                                                const author = book.author
+                                                const searchTerm =
+                                                    debouncedSearch
+                                                        .trim()
+                                                        .toLowerCase()
+                                                if (!searchTerm) return author
+
+                                                const parts = author.split(
+                                                    new RegExp(
+                                                        `(${searchTerm})`,
+                                                        'gi',
+                                                    ),
+                                                )
+                                                return parts.map((part, idx) =>
+                                                    part.toLowerCase() ===
+                                                    searchTerm ? (
+                                                        <b
+                                                            key={idx}
+                                                            className="text-blue-600">
+                                                            {part}
+                                                        </b>
+                                                    ) : (
+                                                        part
+                                                    ),
+                                                )
+                                            })()}
                                         </p>
+
                                         <p className="text-sm mt-2">
                                             Stock:{' '}
                                             <span className="font-bold">
@@ -338,6 +281,7 @@ const Dashboard = () => {
                                             </span>{' '}
                                             / {book.stock}
                                         </p>
+
                                         <p className="text-sm mt-2">
                                             Harga:{' '}
                                             <span className="font-bold">
@@ -381,7 +325,7 @@ const Dashboard = () => {
                                                 </>
                                             )}
 
-                                            {user?.role === 'user' && (
+                                            {user?.role === 'admin' && (
                                                 <>
                                                     {book.available > 0 ? (
                                                         <button
@@ -403,7 +347,6 @@ const Dashboard = () => {
                                         </div>
                                     </div>
                                 ))}
-
                             </div>
                         </div>
 
@@ -629,7 +572,7 @@ const Dashboard = () => {
                                                         setSelectedBook({
                                                             ...selectedBook,
                                                             cover: e.target
-                                                                .files[0], // file baru
+                                                                .files[0],
                                                         })
                                                     }
                                                     className="w-full border p-2 rounded"
@@ -733,3 +676,4 @@ const Dashboard = () => {
 }
 
 export default Dashboard
+

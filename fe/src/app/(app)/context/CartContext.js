@@ -30,7 +30,7 @@ export function CartProvider({ children }) {
             )
             toast.success(
                 <span>
-                    ⚠️ +1 <b>{book.title}</b> ditambahkan
+                    📚 +1 <b>{book.title}</b> ditambahkan
                 </span>,
             )
         } else {

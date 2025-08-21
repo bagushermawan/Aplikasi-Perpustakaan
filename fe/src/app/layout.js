@@ -1,6 +1,8 @@
 import { Nunito } from 'next/font/google'
 import '@/app/global.css'
 import { CartProvider } from './(app)/context/CartContext'
+import '@mantine/core/styles.css'
+import { MantineProvider } from '@mantine/core'
 
 const nunitoFont = Nunito({
     subsets: ['latin'],
@@ -11,9 +13,9 @@ const RootLayout = ({ children }) => {
     return (
         <html lang="en" className={nunitoFont.className}>
             <body className="antialiased">
-                <CartProvider>
-                    {children}
-                </CartProvider>
+                <MantineProvider>
+                    <CartProvider>{children}</CartProvider>
+                </MantineProvider>
             </body>
         </html>
     )
