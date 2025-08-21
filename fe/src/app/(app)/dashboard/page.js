@@ -17,7 +17,7 @@ const Dashboard = () => {
     const [isFocused, setIsFocused] = useState(false)
     const searchRef = useRef(null)
     const [page, setPage] = useState(1)
-    const perPage = 12
+    const perPage = 8
     const { addToCart } = useCart()
     const {
         data: booksResp,

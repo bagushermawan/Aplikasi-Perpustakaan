@@ -44,7 +44,11 @@ export function CartProvider({ children }) {
                 return
             }
             setCart([...cart, { ...book, quantity: 1 }])
-            toast.success(`${book.title} dimasukkan ke cart`)
+            toast.success(
+                <span>
+                    <b>{book.title}</b> dimasukkan ke cart
+                </span>,
+            )
         }
     }
 
