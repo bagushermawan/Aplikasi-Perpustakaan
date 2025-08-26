@@ -60,7 +60,6 @@ const Navigation = ({ user }) => {
 
     const [drawerOpened, setDrawerOpened] = useState(false)
 
-    // Role & user
     const [userRole, setUserRole] = useState(null)
     useEffect(() => {
         api.get('/api/auth/user').then(res => setUserRole(res.data))
@@ -71,13 +70,11 @@ const Navigation = ({ user }) => {
     const displayEmail = userRole?.email ?? user?.email
     const avatarUrl = userRole?.avatar_url ?? user?.avatar_url
 
-    // Search state (URL param sebagai sumber kebenaran)
     const [search, setSearch] = useState(searchParams.get('search') || '')
     useEffect(() => {
         setSearch(searchParams.get('search') || '')
     }, [searchParams])
 
-    // Modal Command Palette
     const [searchOpen, setSearchOpen] = useState(false)
     const [modalSearch, setModalSearch] = useState('')
     const modalSearchRef = useRef(null)
@@ -89,10 +86,9 @@ const Navigation = ({ user }) => {
     const handleSearchSubmit = value => {
         updateQuery(value)
         setSearchOpen(false)
-        setModalSearch('') // Reset input setelah submit
+        setModalSearch('')
     }
 
-    // Hotkey Ctrl/Cmd + K, abaikan saat sedang mengetik di input/textarea/contenteditable
     useEffect(() => {
         const handleKey = e => {
             const tag = (e.target?.tagName || '').toLowerCase()
@@ -113,7 +109,6 @@ const Navigation = ({ user }) => {
         return () => window.removeEventListener('keydown', handleKey)
     }, [])
 
-    // Fokus input saat modal dibuka + sinkron nilai dari query param
     useEffect(() => {
         if (searchOpen) {
             setModalSearch(searchParams.get('search') || '')
@@ -134,12 +129,12 @@ const Navigation = ({ user }) => {
         router.replace(`${pathname}${qs ? `?${qs}` : ''}`, { scroll: false })
     }
 
-    const mainMenuItems = [
-        { label: 'Kategori', icon: IoGrid, href: '/categories' },
-        { label: 'Promo', icon: FaTags, href: '/promo', badge: 'Hot' },
-        { label: 'Best Seller', icon: FaGift, href: '/bestseller' },
-        { label: 'Buku Baru', icon: FaBookOpen, href: '/new-arrivals' },
-    ]
+const mainMenuItems = [
+    { label: 'Kategori', icon: IoGrid, href: '/dashboard/categories' },
+    { label: 'Promo', icon: FaTags, href: '/dashboard/promo', badge: 'Hot' },
+    { label: 'Best Seller', icon: FaGift, href: '/dashboard/bestseller' },
+    { label: 'Buku Baru', icon: FaBookOpen, href: '/dashboard/newest' },
+]
 
     const userMenuItems = [
         { label: 'Profil Saya', icon: FaUserCircle, href: '/profile' },

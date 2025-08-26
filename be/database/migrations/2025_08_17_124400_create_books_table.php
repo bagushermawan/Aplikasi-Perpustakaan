@@ -18,6 +18,7 @@ return new class extends Migration
             $table->string('author')->nullable();
             $table->integer('stock')->default(0);
             $table->decimal('harga');
+            $table->decimal('discount')->nullable();
             $table->timestamps();
         });
     }

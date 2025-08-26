@@ -10,25 +10,43 @@ use Illuminate\Support\Facades\Storage;
 
 class BookController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $perPage = request('per_page', 5);
-        $search  = request('search');
+        $perPage = $request->input('per_page', 8);
+        $search  = $request->input('search');
+        $filter  = $request->input('filter');
 
-        $query = Book::query()->orderBy('title', 'asc');
+        $query = Book::query();
 
+        // Search
         if ($search) {
             $query->where(function ($q) use ($search) {
-                $q->where('title', 'like', "%{$search}%")
-                    ->orWhere('author', 'like', "%{$search}%");
+                $q->where('title', 'like', "%$search%")
+                    ->orWhere('author', 'like', "%$search%");
             });
         }
 
+        if ($filter === 'bestseller') {
+            $limit = $request->input('limit', 8);
+
+            $query->withSum('borrowedLoans as total_borrowed', 'quantity') // pakai relasi baru
+                ->orderByDesc('total_borrowed')
+                ->limit($limit);
+
+            return BookResource::collection($query->get());
+        }
+
+        // filter lain...
+        if ($filter === 'promo') {
+            $query->whereNotNull('discount')->where('discount', '>', 0);
+        } elseif ($filter === 'newest') {
+            $query->orderBy('created_at', 'desc');
+        } else {
+            $query->orderBy('title', 'asc');
+        }
+
         return BookResource::collection(
-            $query->paginate($perPage)->appends([
-                'per_page' => $perPage,
-                'search'   => $search,
-            ])
+            $query->paginate($perPage)->appends($request->query())
         );
     }
 
