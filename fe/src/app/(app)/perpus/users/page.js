@@ -6,16 +6,15 @@ import UserTable from '@/components/UserTable'
 const UsersPage = () => {
     return (
         <>
-            <Header title="All Users" />
-            <div className="flex">
-                {/* Sidebar */}
-                <Sidebar />
+            {/* <Header title="All Users" /> */}
+            {/* <div className="flex"> */}
+                {/* <Sidebar /> */}
 
                 {/* Main Content */}
-                <div className="flex-1 p-6">
+                {/* <div className="flex-1 p-6"> */}
                     <UserTable />
-                </div>
-            </div>
+                {/* </div> */}
+            {/* </div> */}
         </>
     )
 }

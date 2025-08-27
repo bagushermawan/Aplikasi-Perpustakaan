@@ -6,16 +6,12 @@ import BookTable from '@/components/BookTable'
 const BooksPage = () => {
     return (
         <>
-            <Header title="All Books" />
-            <div className="flex">
+            {/* <Header title="All Books" /> */}
                 {/* Sidebar */}
-                <Sidebar />
+                {/* <Sidebar /> */}
 
                 {/* Main Content */}
-                <div className="flex-1 p-6">
                     <BookTable />
-                </div>
-            </div>
         </>
     )
 }

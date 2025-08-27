@@ -14,25 +14,25 @@ const LoansPage = () => {
     }, [])
     return (
         <>
-            <Header title="All Loans" />
-            <div className="flex">
+            {/* <Header title="All Loans" /> */}
+            {/* <div className="flex"> */}
                 {/* Sidebar */}
-                <Sidebar />
+                {/* <Sidebar /> */}
 
                 {/* Admin Content */}
                 {userRole?.role === 'admin' && (
-                    <div className="flex-1 p-6">
+                    // <div className="flex-1 p-6">
                         <LoanTable />
-                    </div>
+                    // </div>
                 )}
 
                 {/* User Content */}
                 {userRole?.role === 'user' && (
-                    <div className="flex-1 p-6">
+                    // <div className="flex-1 p-6">
                         <LoanUserTable />
-                    </div>
+                    // </div>
                 )}
-            </div>
+            {/* </div> */}
         </>
     )
 }

@@ -18,29 +18,29 @@ class BookController extends Controller
 
         $query = Book::query();
 
-        // Search
         if ($search) {
             $query->where(function ($q) use ($search) {
-                $q->where('title', 'like', "%$search%")
-                    ->orWhere('author', 'like', "%$search%");
+                $q->where('title', 'like', "%{$search}%")
+                    ->orWhere('author', 'like', "%{$search}%");
             });
         }
 
         if ($filter === 'bestseller') {
             $limit = $request->input('limit', 8);
 
-            $query->withSum('borrowedLoans as total_borrowed', 'quantity') // pakai relasi baru
-                ->orderByDesc('total_borrowed')
-                ->limit($limit);
+            $query->withSum('borrowedLoans as total_borrowed', 'quantity')
+                ->orderByDesc('total_borrowed');
 
-            return BookResource::collection($query->get());
+            return BookResource::collection($query->take($limit)->get());
         }
 
-        // filter lain...
         if ($filter === 'promo') {
-            $query->whereNotNull('discount')->where('discount', '>', 0);
+            $query->whereNotNull('discount')
+                ->where('discount', '>', 0);
         } elseif ($filter === 'newest') {
+            $limit = $request->input('limit', 8);
             $query->orderBy('created_at', 'desc');
+            return BookResource::collection($query->take($limit)->get());;
         } else {
             $query->orderBy('title', 'asc');
         }

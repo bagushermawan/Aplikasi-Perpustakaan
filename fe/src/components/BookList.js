@@ -3,8 +3,9 @@
 import useSWR from 'swr'
 import api from '@/lib/axios'
 import { useEffect, useState } from 'react'
-import toast from 'react-hot-toast'
 import { useCart } from '../app/(app)/context/CartContext'
+import toast from 'react-hot-toast'
+import { useSearchParams } from 'next/navigation'
 
 const fetcher = url => api.get(url).then(res => res.data)
 
@@ -18,13 +19,19 @@ export default function BookList({ filterType }) {
 
     const [page, setPage] = useState(1)
     const perPage = 8
-    const [search, setSearch] = useState('')
-    const [debouncedSearch, setDebouncedSearch] = useState(search)
+
+    const searchParams = useSearchParams()
+    const rawSearch = searchParams.get('search') || ''
+
+    const [debouncedSearch, setDebouncedSearch] = useState(rawSearch)
+    useEffect(() => {
+        const t = setTimeout(() => setDebouncedSearch(rawSearch), 300)
+        return () => clearTimeout(t)
+    }, [rawSearch])
 
     useEffect(() => {
-        const t = setTimeout(() => setDebouncedSearch(search), 300)
-        return () => clearTimeout(t)
-    }, [search])
+        setPage(1)
+    }, [debouncedSearch])
 
     const endpoint = `/api/perpus/books?page=${page}&per_page=${perPage}${
         debouncedSearch ? `&search=${encodeURIComponent(debouncedSearch)}` : ''
@@ -58,7 +65,7 @@ export default function BookList({ filterType }) {
                                 ? '📈 Best Seller'
                                 : filterType === 'promo'
                                   ? '🔥 Promo Spesial'
-                                  : filterType === 'new-arrivals'
+                                  : filterType === 'newest'
                                     ? '🆕 Buku Baru'
                                     : '📚 Semua Buku'}
                         </h2>
@@ -75,7 +82,6 @@ export default function BookList({ filterType }) {
                                 <div
                                     key={book.id}
                                     className="border rounded-lg shadow p-4 flex flex-col">
-                                    {/* Cover */}
                                     <div className="flex-1 mb-3">
                                         {book.cover ? (
                                             <img
@@ -91,22 +97,84 @@ export default function BookList({ filterType }) {
                                             </div>
                                         )}
                                     </div>
-
                                     <h3 className="text-lg font-semibold">
-                                        {book.title}
+                                        {(() => {
+                                            const title = book.title
+                                            const searchTerm = debouncedSearch
+                                                .trim()
+                                                .toLowerCase()
+                                            if (!searchTerm) return title
+                                            const parts = title.split(
+                                                new RegExp(
+                                                    `(${searchTerm})`,
+                                                    'gi',
+                                                ),
+                                            )
+                                            return parts.map((part, idx) =>
+                                                part.toLowerCase() ===
+                                                searchTerm ? (
+                                                    <b
+                                                        key={idx}
+                                                        className="text-blue-600">
+                                                        {part}
+                                                    </b>
+                                                ) : (
+                                                    part
+                                                ),
+                                            )
+                                        })()}
                                     </h3>
-                                    <p className="text-sm text-gray-600">
-                                        by {book.author}
+                                    <h3 className="text-sm text-gray-600">
+                                        {(() => {
+                                            const author = book.author
+                                            const searchTerm = debouncedSearch
+                                                .trim()
+                                                .toLowerCase()
+                                            if (!searchTerm) return author
+                                            const parts = author.split(
+                                                new RegExp(
+                                                    `(${searchTerm})`,
+                                                    'gi',
+                                                ),
+                                            )
+                                            return parts.map((part, idx) =>
+                                                part.toLowerCase() ===
+                                                searchTerm ? (
+                                                    <b
+                                                        key={idx}
+                                                        className="text-blue-600">
+                                                        {part}
+                                                    </b>
+                                                ) : (
+                                                    part
+                                                ),
+                                            )
+                                        })()}
+                                    </h3>
+                                    <p className="text-sm mt-2 text-gray-600">
+                                        {filterType === 'newest' ? (
+                                            <>Diposting: {book.created_at}</>
+                                        ) : (
+                                            <></>
+                                        )}
                                     </p>
-
                                     <p className="text-sm mt-2">
-                                        {filterType === 'bestseller'
-                                            ? 'Terjual: '
-                                            : 'Stock: '}
-                                        <span className="font-bold">
-                                            {book.borrowed}
-                                        </span>
-                                        /{book.stock}
+                                        {filterType === 'bestseller' ? (
+                                            <>
+                                                Terjual:{' '}
+                                                <span className="font-bold">
+                                                    {book.terjual}
+                                                </span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                Stock:{' '}
+                                                <span className="font-bold">
+                                                    {book.available}
+                                                </span>{' '}
+                                                / {book.stock}
+                                            </>
+                                        )}
                                     </p>
                                     <p className="text-sm mt-2">
                                         Harga:{' '}
@@ -117,13 +185,11 @@ export default function BookList({ filterType }) {
                                             }).format(book.harga)}
                                         </span>
                                     </p>
-
                                     {book.discount > 0 && (
                                         <p className="text-sm text-red-600 font-bold">
                                             Diskon: {book.discount}%
                                         </p>
                                     )}
-
                                     {/* Button */}
                                     <div className="mt-3">
                                         {book.available > 0 ? (

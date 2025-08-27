@@ -99,8 +99,6 @@ export default function LoansTable() {
     const meta = loansResp?.meta || {}
     const lastPage = meta.last_page || 1
 
-
-
     const handleAdd = async e => {
         e.preventDefault()
         await toast.promise(api.post(`/api/perpus/loans`, selectedLoan), {
@@ -126,322 +124,355 @@ export default function LoansTable() {
         setModalType(null)
     }
 
-     const handleDelete = async id => {
-         await toast.promise(api.delete(`/api/perpus/loans/${id}`), {
-             loading: '⏳ Menghapus loan...',
-             success: '🗑️ Loan berhasil dihapus!',
-             error: '❌ Gagal menghapus loan',
-         })
-         mutate()
-         setModalType(null)
-     }
+    const handleDelete = async id => {
+        await toast.promise(api.delete(`/api/perpus/loans/${id}`), {
+            loading: '⏳ Menghapus loan...',
+            success: '🗑️ Loan berhasil dihapus!',
+            error: '❌ Gagal menghapus loan',
+        })
+        mutate()
+        setModalType(null)
+    }
 
     return (
-        <div className="relative">
-            {/* Overlay blur */}
-            {isFocused && search.length === 0 && (
-                <div className="fixed inset-0 backdrop-blur-sm bg-black/30 z-10 transition-opacity"></div>
-            )}
-
-            <div className="p-6">
-                <h1 className="text-2xl font-bold mb-4">All Loans</h1>
-
-                {/* Search + Add */}
-                <div className="grid grid-cols-6 gap-2 mb-4">
-                    <input
-                        ref={searchRef}
-                        type="text"
-                        placeholder="Cari loan ... (Ctrl+K)"
-                        value={search}
-                        onChange={e => setSearch(e.target.value)}
-                        onFocus={() => setIsFocused(true)}
-                        onBlur={() => {
-                            if (search.length === 0) setIsFocused(false)
-                        }}
-                        className="px-3 py-2 border rounded col-span-5 relative z-20"
-                    />
-                    <button
-                        onClick={() => {
-                            setSelectedLoan({
-                                user_id: '',
-                                book_id: '',
-                                borrowed_at: '',
-                                return_date: '',
-                                status: 'borrowed',
-                            })
-                            setModalType('add')
-                        }}
-                        className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 w-full">
-                        Add Loan
-                    </button>
-                </div>
-
-                {/* Table */}
-                <div className="overflow-x-auto">
-                    <table className="min-w-full border">
-                        <thead>
-                            <tr className="bg-gray-100">
-                                <th className="p-2 border">No</th>
-                                <th
-                                    className="p-2 border cursor-pointer select-none"
-                                    onClick={() => toggleSort('users.name')}>
-                                    <div className="flex items-center justify-center gap-1">
-                                        <span>User</span>
-                                        {sortBy !== 'users.name' && (
-                                            <span>
-                                                <HiMiniArrowsUpDown />
-                                            </span>
-                                        )}
-                                        {sortBy === 'users.name' &&
-                                            sortDir === 'asc' && (
-                                                <span>
-                                                    <HiMiniArrowSmallUp />
-                                                </span>
-                                            )}
-                                        {sortBy === 'users.name' &&
-                                            sortDir === 'desc' && (
-                                                <span>
-                                                    <HiMiniArrowSmallDown />
-                                                </span>
-                                            )}
-                                    </div>
-                                </th>
-                                <th
-                                    className="p-2 border cursor-pointer select-none"
-                                    onClick={() => toggleSort('books.title')}>
-                                    <div className="flex items-center justify-center gap-1">
-                                        <span>Book</span>
-                                        {sortBy !== 'books.title' && (
-                                            <span>
-                                                <HiMiniArrowsUpDown />
-                                            </span>
-                                        )}
-                                        {sortBy === 'books.title' &&
-                                            sortDir === 'asc' && (
-                                                <span>
-                                                    <HiMiniArrowSmallUp />
-                                                </span>
-                                            )}
-                                        {sortBy === 'books.title' &&
-                                            sortDir === 'desc' && (
-                                                <span>
-                                                    <HiMiniArrowSmallDown />
-                                                </span>
-                                            )}
-                                    </div>
-                                </th>
-                                <th className="p-2 border">Borrowed At</th>
-                                <th className="p-2 border">Return Date</th>
-                                <th
-                                    className="p-2 border cursor-pointer select-none"
-                                    onClick={() => toggleSort('loans.status')}>
-                                    <div className="flex items-center justify-center gap-1">
-                                        <span>Status </span>
-                                        {sortBy !== 'loans.status' && (
-                                            <span>
-                                                <HiMiniArrowsUpDown />
-                                            </span>
-                                        )}
-                                        {sortBy === 'loans.status' &&
-                                            sortDir === 'asc' && (
-                                                <span>
-                                                    <HiMiniArrowSmallUp />
-                                                </span>
-                                            )}
-                                        {sortBy === 'loans.status' &&
-                                            sortDir === 'desc' && (
-                                                <span>
-                                                    <HiMiniArrowSmallDown />
-                                                </span>
-                                            )}
-                                    </div>
-                                </th>
-                                <th className="p-2 border">Quantity</th>
-                                <th className="p-2 border">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {loans.map((loan, index) => (
-                                <tr key={loan.id} className="hover:bg-gray-50">
-                                    <td className="p-2 border text-center">
-                                        {(meta.from ??
-                                            (page - 1) * perPage + 1) + index}
-                                    </td>
-                                    {/* User */}
-                                    <td className="p-2 border">
-                                        {(() => {
-                                            const name = loan.user?.name || ''
-                                            const term = debouncedSearch
-                                                .trim()
-                                                .toLowerCase()
-                                            if (!term) return name
-                                            const parts = name.split(
-                                                new RegExp(`(${term})`, 'gi'),
-                                            )
-                                            return parts.map((part, idx) =>
-                                                part.toLowerCase() === term ? (
-                                                    <b
-                                                        key={idx}
-                                                        className="text-blue-600">
-                                                        {part}
-                                                    </b>
-                                                ) : (
-                                                    part
-                                                ),
-                                            )
-                                        })()}
-                                    </td>
-                                    {/* Book */}
-                                    <td className="p-2 border">
-                                        {(() => {
-                                            const title = loan.book?.title || ''
-                                            const term = debouncedSearch
-                                                .trim()
-                                                .toLowerCase()
-                                            if (!term) return title
-                                            const parts = title.split(
-                                                new RegExp(`(${term})`, 'gi'),
-                                            )
-                                            return parts.map((part, idx) =>
-                                                part.toLowerCase() === term ? (
-                                                    <b
-                                                        key={idx}
-                                                        className="text-blue-600">
-                                                        {part}
-                                                    </b>
-                                                ) : (
-                                                    part
-                                                ),
-                                            )
-                                        })()}
-                                    </td>
-                                    <td className="p-2 border text-center">
-                                        {loan.borrowed_at}
-                                    </td>
-                                    <td className="p-2 border text-center">
-                                        {loan.return_date || '-'}
-                                    </td>
-                                    <td className="p-2 border capitalize text-center">
-                                        {loan.status}
-                                    </td>
-                                    <td className="p-2 border capitalize text-center">
-                                        {loan.quantity}
-                                    </td>
-                                    <td className="p-2 border space-x-2 text-center">
-                                        <button
-                                            onClick={() => {
-                                                setSelectedLoan({
-                                                    ...loan,
-                                                    user_id: loan.user?.id, // pastikan ada ID user
-                                                    book_id: loan.book?.id, // pastikan ada ID book
-                                                })
-                                                setModalType('edit')
-                                            }}
-                                            className="px-3 py-1 bg-blue-500 text-white rounded">
-                                            Edit
-                                        </button>
-                                        <button
-                                            onClick={() => {
-                                                setSelectedLoan(loan)
-                                                setModalType('delete')
-                                            }}
-                                            className="px-3 py-1 bg-red-500 text-white rounded">
-                                            Delete
-                                        </button>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-
-                {/* Pagination */}
-                <div className="flex items-center justify-between mt-4">
-                    <button
-                        onClick={() => setPage(p => Math.max(1, p - 1))}
-                        disabled={page <= 1}
-                        className="px-3 py-1 border rounded bg-blue-200 hover:bg-blue-300 disabled:opacity-50">
-                        Prev
-                    </button>
-                    {isValidating ? (
-                        <span className="text-sm text-gray-500">
-                            Searching…
-                        </span>
-                    ) : (
-                        <span>
-                            Page {meta.current_page || 1} of{' '}
-                            {meta.last_page || 1}{' '}
-                            <span className="text-gray-500">
-                                (Total: {meta.total})
-                            </span>
-                        </span>
+        <div className="py-12">
+            <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
+                <div className="bg-white overflow-hidden shadow rounded-lg">
+                    {/* Overlay blur */}
+                    {isFocused && search.length === 0 && (
+                        <div className="fixed inset-0 backdrop-blur-sm bg-black/30 z-10 transition-opacity"></div>
                     )}
-                    <button
-                        onClick={() => setPage(p => Math.min(lastPage, p + 1))}
-                        disabled={page >= lastPage}
-                        className="px-3 py-1 border rounded bg-blue-200 hover:bg-blue-300 disabled:opacity-50">
-                        Next
-                    </button>
-                </div>
 
-                {/* Modal Add */}
-                {modalType === 'add' && selectedLoan && (
-                    <LoanModal
-                        title="Add Loan"
-                        selectedLoan={selectedLoan}
-                        setSelectedLoan={setSelectedLoan}
-                        setModalType={setModalType}
-                        handleSubmit={handleAdd}
-                        users={users}
-                        books={books}
-                    />
-                )}
+                    <div className="p-6">
+                        <h1 className="text-2xl font-bold mb-4">All Loans</h1>
 
-                {/* Modal Edit */}
-                {modalType === 'edit' && selectedLoan && (
-                    <LoanModal
-                        title="Edit Loan"
-                        selectedLoan={selectedLoan}
-                        setSelectedLoan={setSelectedLoan}
-                        setModalType={setModalType}
-                        handleSubmit={handleEdit}
-                        users={users}
-                        books={books}
-                    />
-                )}
-
-                {/* Modal Delete */}
-                {modalType === 'delete' && selectedLoan && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-30">
-                        <div className="bg-white p-6 rounded shadow-md w-80">
-                            <h2 className="text-lg font-bold mb-4">
-                                Hapus Loan?
-                            </h2>
-                            <p>
-                                Yakin mau hapus loan:{' '}
-                                <b>
-                                    {selectedLoan.user?.name} -{' '}
-                                    {selectedLoan.book?.title}
-                                </b>
-                                ?
-                            </p>
-                            <div className="flex justify-end space-x-2 mt-4">
-                                <button
-                                    onClick={() => setModalType(null)}
-                                    className="px-3 py-1 bg-gray-400 text-white rounded">
-                                    Batal
-                                </button>
-                                <button
-                                    onClick={() =>
-                                        handleDelete(selectedLoan.id)
-                                    }
-                                    className="px-3 py-1 bg-red-600 text-white rounded">
-                                    Hapus
-                                </button>
-                            </div>
+                        {/* Search + Add */}
+                        <div className="grid grid-cols-6 gap-2 mb-4">
+                            <input
+                                ref={searchRef}
+                                type="text"
+                                placeholder="Cari loan ... (Ctrl+K)"
+                                value={search}
+                                onChange={e => setSearch(e.target.value)}
+                                onFocus={() => setIsFocused(true)}
+                                onBlur={() => {
+                                    if (search.length === 0) setIsFocused(false)
+                                }}
+                                className="px-3 py-2 border rounded col-span-5 relative z-20"
+                            />
+                            <button
+                                onClick={() => {
+                                    setSelectedLoan({
+                                        user_id: '',
+                                        book_id: '',
+                                        borrowed_at: '',
+                                        return_date: '',
+                                        status: 'borrowed',
+                                    })
+                                    setModalType('add')
+                                }}
+                                className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 w-full">
+                                Add Loan
+                            </button>
                         </div>
+
+                        {/* Table */}
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full border">
+                                <thead>
+                                    <tr className="bg-gray-100">
+                                        <th className="p-2 border">No</th>
+                                        <th
+                                            className="p-2 border cursor-pointer select-none"
+                                            onClick={() =>
+                                                toggleSort('users.name')
+                                            }>
+                                            <div className="flex items-center justify-center gap-1">
+                                                <span>User</span>
+                                                {sortBy !== 'users.name' && (
+                                                    <span>
+                                                        <HiMiniArrowsUpDown />
+                                                    </span>
+                                                )}
+                                                {sortBy === 'users.name' &&
+                                                    sortDir === 'asc' && (
+                                                        <span>
+                                                            <HiMiniArrowSmallUp />
+                                                        </span>
+                                                    )}
+                                                {sortBy === 'users.name' &&
+                                                    sortDir === 'desc' && (
+                                                        <span>
+                                                            <HiMiniArrowSmallDown />
+                                                        </span>
+                                                    )}
+                                            </div>
+                                        </th>
+                                        <th
+                                            className="p-2 border cursor-pointer select-none"
+                                            onClick={() =>
+                                                toggleSort('books.title')
+                                            }>
+                                            <div className="flex items-center justify-center gap-1">
+                                                <span>Book</span>
+                                                {sortBy !== 'books.title' && (
+                                                    <span>
+                                                        <HiMiniArrowsUpDown />
+                                                    </span>
+                                                )}
+                                                {sortBy === 'books.title' &&
+                                                    sortDir === 'asc' && (
+                                                        <span>
+                                                            <HiMiniArrowSmallUp />
+                                                        </span>
+                                                    )}
+                                                {sortBy === 'books.title' &&
+                                                    sortDir === 'desc' && (
+                                                        <span>
+                                                            <HiMiniArrowSmallDown />
+                                                        </span>
+                                                    )}
+                                            </div>
+                                        </th>
+                                        <th className="p-2 border">
+                                            Borrowed At
+                                        </th>
+                                        <th className="p-2 border">
+                                            Return Date
+                                        </th>
+                                        <th
+                                            className="p-2 border cursor-pointer select-none"
+                                            onClick={() =>
+                                                toggleSort('loans.status')
+                                            }>
+                                            <div className="flex items-center justify-center gap-1">
+                                                <span>Status </span>
+                                                {sortBy !== 'loans.status' && (
+                                                    <span>
+                                                        <HiMiniArrowsUpDown />
+                                                    </span>
+                                                )}
+                                                {sortBy === 'loans.status' &&
+                                                    sortDir === 'asc' && (
+                                                        <span>
+                                                            <HiMiniArrowSmallUp />
+                                                        </span>
+                                                    )}
+                                                {sortBy === 'loans.status' &&
+                                                    sortDir === 'desc' && (
+                                                        <span>
+                                                            <HiMiniArrowSmallDown />
+                                                        </span>
+                                                    )}
+                                            </div>
+                                        </th>
+                                        <th className="p-2 border">Quantity</th>
+                                        <th className="p-2 border">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {loans.map((loan, index) => (
+                                        <tr
+                                            key={loan.id}
+                                            className="hover:bg-gray-50">
+                                            <td className="p-2 border text-center">
+                                                {(meta.from ??
+                                                    (page - 1) * perPage + 1) +
+                                                    index}
+                                            </td>
+                                            {/* User */}
+                                            <td className="p-2 border">
+                                                {(() => {
+                                                    const name =
+                                                        loan.user?.name || ''
+                                                    const term = debouncedSearch
+                                                        .trim()
+                                                        .toLowerCase()
+                                                    if (!term) return name
+                                                    const parts = name.split(
+                                                        new RegExp(
+                                                            `(${term})`,
+                                                            'gi',
+                                                        ),
+                                                    )
+                                                    return parts.map(
+                                                        (part, idx) =>
+                                                            part.toLowerCase() ===
+                                                            term ? (
+                                                                <b
+                                                                    key={idx}
+                                                                    className="text-blue-600">
+                                                                    {part}
+                                                                </b>
+                                                            ) : (
+                                                                part
+                                                            ),
+                                                    )
+                                                })()}
+                                            </td>
+                                            {/* Book */}
+                                            <td className="p-2 border">
+                                                {(() => {
+                                                    const title =
+                                                        loan.book?.title || ''
+                                                    const term = debouncedSearch
+                                                        .trim()
+                                                        .toLowerCase()
+                                                    if (!term) return title
+                                                    const parts = title.split(
+                                                        new RegExp(
+                                                            `(${term})`,
+                                                            'gi',
+                                                        ),
+                                                    )
+                                                    return parts.map(
+                                                        (part, idx) =>
+                                                            part.toLowerCase() ===
+                                                            term ? (
+                                                                <b
+                                                                    key={idx}
+                                                                    className="text-blue-600">
+                                                                    {part}
+                                                                </b>
+                                                            ) : (
+                                                                part
+                                                            ),
+                                                    )
+                                                })()}
+                                            </td>
+                                            <td className="p-2 border text-center">
+                                                {loan.borrowed_at}
+                                            </td>
+                                            <td className="p-2 border text-center">
+                                                {loan.return_date || '-'}
+                                            </td>
+                                            <td className="p-2 border capitalize text-center">
+                                                {loan.status}
+                                            </td>
+                                            <td className="p-2 border capitalize text-center">
+                                                {loan.quantity}
+                                            </td>
+                                            <td className="p-2 border space-x-2 text-center">
+                                                <button
+                                                    onClick={() => {
+                                                        setSelectedLoan({
+                                                            ...loan,
+                                                            user_id:
+                                                                loan.user?.id, // pastikan ada ID user
+                                                            book_id:
+                                                                loan.book?.id, // pastikan ada ID book
+                                                        })
+                                                        setModalType('edit')
+                                                    }}
+                                                    className="px-3 py-1 bg-blue-500 text-white rounded">
+                                                    Edit
+                                                </button>
+                                                <button
+                                                    onClick={() => {
+                                                        setSelectedLoan(loan)
+                                                        setModalType('delete')
+                                                    }}
+                                                    className="px-3 py-1 bg-red-500 text-white rounded">
+                                                    Delete
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {/* Pagination */}
+                        <div className="flex items-center justify-between mt-4">
+                            <button
+                                onClick={() => setPage(p => Math.max(1, p - 1))}
+                                disabled={page <= 1}
+                                className="px-3 py-1 border rounded bg-blue-200 hover:bg-blue-300 disabled:opacity-50">
+                                Prev
+                            </button>
+                            {isValidating ? (
+                                <span className="text-sm text-gray-500">
+                                    Searching…
+                                </span>
+                            ) : (
+                                <span>
+                                    Page {meta.current_page || 1} of{' '}
+                                    {meta.last_page || 1}{' '}
+                                    <span className="text-gray-500">
+                                        (Total: {meta.total})
+                                    </span>
+                                </span>
+                            )}
+                            <button
+                                onClick={() =>
+                                    setPage(p => Math.min(lastPage, p + 1))
+                                }
+                                disabled={page >= lastPage}
+                                className="px-3 py-1 border rounded bg-blue-200 hover:bg-blue-300 disabled:opacity-50">
+                                Next
+                            </button>
+                        </div>
+
+                        {/* Modal Add */}
+                        {modalType === 'add' && selectedLoan && (
+                            <LoanModal
+                                title="Add Loan"
+                                selectedLoan={selectedLoan}
+                                setSelectedLoan={setSelectedLoan}
+                                setModalType={setModalType}
+                                handleSubmit={handleAdd}
+                                users={users}
+                                books={books}
+                            />
+                        )}
+
+                        {/* Modal Edit */}
+                        {modalType === 'edit' && selectedLoan && (
+                            <LoanModal
+                                title="Edit Loan"
+                                selectedLoan={selectedLoan}
+                                setSelectedLoan={setSelectedLoan}
+                                setModalType={setModalType}
+                                handleSubmit={handleEdit}
+                                users={users}
+                                books={books}
+                            />
+                        )}
+
+                        {/* Modal Delete */}
+                        {modalType === 'delete' && selectedLoan && (
+                            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-30">
+                                <div className="bg-white p-6 rounded shadow-md w-80">
+                                    <h2 className="text-lg font-bold mb-4">
+                                        Hapus Loan?
+                                    </h2>
+                                    <p>
+                                        Yakin mau hapus loan:{' '}
+                                        <b>
+                                            {selectedLoan.user?.name} -{' '}
+                                            {selectedLoan.book?.title}
+                                        </b>
+                                        ?
+                                    </p>
+                                    <div className="flex justify-end space-x-2 mt-4">
+                                        <button
+                                            onClick={() => setModalType(null)}
+                                            className="px-3 py-1 bg-gray-400 text-white rounded">
+                                            Batal
+                                        </button>
+                                        <button
+                                            onClick={() =>
+                                                handleDelete(selectedLoan.id)
+                                            }
+                                            className="px-3 py-1 bg-red-600 text-white rounded">
+                                            Hapus
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
-                )}
+                </div>
             </div>
         </div>
     )

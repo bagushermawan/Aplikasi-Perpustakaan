@@ -129,12 +129,24 @@ const Navigation = ({ user }) => {
         router.replace(`${pathname}${qs ? `?${qs}` : ''}`, { scroll: false })
     }
 
-const mainMenuItems = [
-    { label: 'Kategori', icon: IoGrid, href: '/dashboard/categories' },
-    { label: 'Promo', icon: FaTags, href: '/dashboard/promo', badge: 'Hot' },
-    { label: 'Best Seller', icon: FaGift, href: '/dashboard/bestseller' },
-    { label: 'Buku Baru', icon: FaBookOpen, href: '/dashboard/newest' },
-]
+    const mainMenuItems = [
+        { label: 'All Book', icon: IoGrid, href: '/dashboard' },
+        {
+            label: 'Promo',
+            icon: FaTags,
+            href: '/dashboard/promo',
+            badge: 'Hot',
+        },
+        { label: 'Best Seller', icon: FaGift, href: '/dashboard/bestseller' },
+        { label: 'Buku Baru', icon: FaBookOpen, href: '/dashboard/newest' },
+    ]
+
+    const mainMenuisAdminItems = [
+        { label: 'Dashboard', icon: IoGrid, href: '/perpus' },
+        { label: 'All Users', icon: FaTags, href: '/perpus/users' },
+        { label: 'All Books', icon: FaGift, href: '/perpus/books' },
+        { label: 'All Loans', icon: FaBookOpen, href: '/perpus/loans' },
+    ]
 
     const userMenuItems = [
         { label: 'Profil Saya', icon: FaUserCircle, href: '/profile' },
@@ -212,7 +224,7 @@ const mainMenuItems = [
                             <Text size="xs" c="dimmed">
                                 Dikirim dari{' '}
                                 <Text span fw={500}>
-                                    Surabaya
+                                    Xx
                                 </Text>
                             </Text>
                         </Group>
@@ -251,64 +263,65 @@ const mainMenuItems = [
                             </Link>
 
                             {/* Search Input (hiasan) - Desktop */}
-                            <Box
-                                style={{
-                                    flex: 1,
-                                    maxWidth: 500,
-                                    position: 'relative',
-                                }}
-                                visibleFrom="sm">
-                                <TextInput
-                                    placeholder="Cari judul buku atau penulis (Ctrl+K)"
-                                    value={search}
-                                    readOnly
-                                    tabIndex={-1}
-                                    radius="xl"
-                                    size="md"
-                                    leftSection={<FaSearch size={16} />}
-                                    rightSection={
-                                        <div className="hidden sm:flex items-center gap-1 text-xs text-gray-500">
-                                            <span className="px-1.5 py-0.5 border rounded">
-                                                Ctrl
-                                            </span>
-                                            <span>+</span>
-                                            <span className="px-1.5 py-0.5 border rounded">
-                                                K
-                                            </span>
-                                        </div>
-                                    }
-                                    rightSectionWidth={90}
-                                    className="z-10"
-                                    styles={{
-                                        input: {
-                                            pointerEvents: 'none',
-                                            cursor: 'text',
-                                        },
-                                    }}
-                                />
-                                {/* Overlay button penangkap klik */}
-                                <UnstyledButton
-                                    onClick={() => setSearchOpen(true)}
-                                    aria-haspopup="dialog"
-                                    aria-controls={SEARCH_MODAL_ID}
-                                    title="Buka pencarian (Ctrl+K)"
+                            {pathname.startsWith('/perpus') || (
+                                <Box
                                     style={{
-                                        position: 'absolute',
-                                        inset: 0,
-                                        zIndex: 20,
-                                        cursor: 'text',
+                                        flex: 1,
+                                        maxWidth: 500,
+                                        position: 'relative',
                                     }}
-                                    onKeyDown={e => {
-                                        if (
-                                            e.key === 'Enter' ||
-                                            e.key === ' '
-                                        ) {
-                                            e.preventDefault()
-                                            setSearchOpen(true)
+                                    visibleFrom="sm">
+                                    <TextInput
+                                        placeholder="Cari judul buku atau penulis (Ctrl+K)"
+                                        value={search}
+                                        readOnly
+                                        tabIndex={-1}
+                                        radius="xl"
+                                        size="md"
+                                        leftSection={<FaSearch size={16} />}
+                                        rightSection={
+                                            <div className="hidden sm:flex items-center gap-1 text-xs text-gray-500">
+                                                <span className="px-1.5 py-0.5 border rounded">
+                                                    Ctrl
+                                                </span>
+                                                <span>+</span>
+                                                <span className="px-1.5 py-0.5 border rounded">
+                                                    K
+                                                </span>
+                                            </div>
                                         }
-                                    }}
-                                />
-                            </Box>
+                                        rightSectionWidth={90}
+                                        className="z-10"
+                                        styles={{
+                                            input: {
+                                                pointerEvents: 'none',
+                                                cursor: 'text',
+                                            },
+                                        }}
+                                    />
+                                    <UnstyledButton
+                                        onClick={() => setSearchOpen(true)}
+                                        aria-haspopup="dialog"
+                                        aria-controls={SEARCH_MODAL_ID}
+                                        title="Buka pencarian (Ctrl+K)"
+                                        style={{
+                                            position: 'absolute',
+                                            inset: 0,
+                                            zIndex: 20,
+                                            cursor: 'text',
+                                        }}
+                                        onKeyDown={e => {
+                                            if (
+                                                e.key === 'Enter' ||
+                                                e.key === ' '
+                                            ) {
+                                                e.preventDefault()
+                                                setSearchOpen(true)
+                                            }
+                                        }}
+                                    />
+                                </Box>
+                            )}
                         </Group>
 
                         {/* Action Icons */}
@@ -490,39 +503,70 @@ const mainMenuItems = [
                     <Container size="xl">
                         <ScrollArea>
                             <Group gap="md" wrap="nowrap">
-                                {mainMenuItems.map(item => (
-                                    <Button
-                                        key={item.label}
-                                        component={Link}
-                                        href={item.href}
-                                        // Warna tema indigo untuk konsistensi
-                                        color="indigo"
-                                        c={
-                                            pathname === item.href
-                                                ? 'white'
-                                                : 'indigo.9'
-                                        }
-                                        variant={
-                                            pathname === item.href
-                                                ? 'filled'
-                                                : 'subtle'
-                                        }
-                                        size="sm"
-                                        radius="xl"
-                                        leftSection={<item.icon size={16} />}
-                                        rightSection={
-                                            item.badge && (
-                                                <Badge
-                                                    size="xs"
-                                                    color="red"
-                                                    variant="filled">
-                                                    {item.badge}
-                                                </Badge>
-                                            )
-                                        }>
-                                        {item.label}
-                                    </Button>
-                                ))}
+                                {/* menu umum */}
+                                {pathname.startsWith('/dashboard') &&
+                                    mainMenuItems.map(item => (
+                                        <Button
+                                            key={item.label}
+                                            component={Link}
+                                            href={item.href}
+                                            color="indigo"
+                                            c={
+                                                pathname === item.href
+                                                    ? 'white'
+                                                    : 'indigo.9'
+                                            }
+                                            variant={
+                                                pathname === item.href
+                                                    ? 'filled'
+                                                    : 'subtle'
+                                            }
+                                            size="sm"
+                                            radius="xl"
+                                            leftSection={
+                                                <item.icon size={16} />
+                                            }
+                                            rightSection={
+                                                item.badge && (
+                                                    <Badge
+                                                        size="xs"
+                                                        color="red"
+                                                        variant="filled">
+                                                        {item.badge}
+                                                    </Badge>
+                                                )
+                                            }>
+                                            {item.label}
+                                        </Button>
+                                    ))}
+
+                                {/* menu admin */}
+                                {isAdmin &&
+                                    pathname.startsWith('/perpus') &&
+                                    mainMenuisAdminItems.map(item => (
+                                        <Button
+                                            key={item.label}
+                                            component={Link}
+                                            href={item.href}
+                                            color="indigo"
+                                            c={
+                                                pathname === item.href
+                                                    ? 'white'
+                                                    : 'indigo.9'
+                                            }
+                                            variant={
+                                                pathname === item.href
+                                                    ? 'filled'
+                                                    : 'subtle'
+                                            }
+                                            size="sm"
+                                            radius="xl"
+                                            leftSection={
+                                                <item.icon size={16} />
+                                            }>
+                                            {item.label}
+                                        </Button>
+                                    ))}
                             </Group>
                         </ScrollArea>
                     </Container>
@@ -629,4 +673,3 @@ const mainMenuItems = [
 }
 
 export default Navigation
-

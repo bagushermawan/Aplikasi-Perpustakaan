@@ -27,6 +27,7 @@ class BookResource extends JsonResource
             'available' => $this->availableStock(),
             'cover'     => $cover,
             'harga'     => $this->harga,
+            'created_at'     => $this->created_at->format('d/m/y - H:i'),
             'terjual'   => $this->when(
                 isset($this->total_borrowed),
                 $this->total_borrowed, // hasil withSum('loans as total_borrowed',...)

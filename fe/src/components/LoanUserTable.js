@@ -72,149 +72,178 @@ export default function LoanUserTable() {
     }, 0)
 
     return (
-        <div className="relative">
-            {isFocused && search.length === 0 && (
-                <div className="fixed inset-0 backdrop-blur-sm bg-black/30 z-10"></div>
-            )}
+        <div className="py-12">
+            <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
+                <div className="bg-white overflow-hidden shadow rounded-lg">
+                    {isFocused && search.length === 0 && (
+                        <div className="fixed inset-0 backdrop-blur-sm bg-black/30 z-10"></div>
+                    )}
 
-            <h2 className="text-xl font-bold mb-4">My Borrowed Books</h2>
+                    <h2 className="text-xl font-bold mb-4">
+                        My Borrowed Books
+                    </h2>
 
-            {/* Search */}
-            <div className="mb-4">
-                <input
-                    ref={searchRef}
-                    type="text"
-                    placeholder="Search borrowed books... (Ctrl+K)"
-                    value={search}
-                    onChange={e => setSearch(e.target.value)}
-                    onFocus={() => setIsFocused(true)}
-                    onBlur={() => {
-                        if (search.length === 0) setIsFocused(false)
-                    }}
-                    className="w-full border p-2 rounded relative z-20"
-                />
-            </div>
+                    {/* Search */}
+                    <div className="mb-4">
+                        <input
+                            ref={searchRef}
+                            type="text"
+                            placeholder="Search borrowed books... (Ctrl+K)"
+                            value={search}
+                            onChange={e => setSearch(e.target.value)}
+                            onFocus={() => setIsFocused(true)}
+                            onBlur={() => {
+                                if (search.length === 0) setIsFocused(false)
+                            }}
+                            className="w-full border p-2 rounded relative z-20"
+                        />
+                    </div>
 
-            {/* Table */}
-            <div className="overflow-x-auto">
-                <table className="min-w-full border">
-                    <thead>
-                        <tr className="bg-gray-100">
-                            <th className="p-2 border text-center">No</th>
-                            <th className="p-2 border">Title</th>
-                            <th className="p-2 border text-center">
-                                Borrowed At
-                            </th>
-                            <th className="p-2 border text-center">
-                                Return Date
-                            </th>
-                            <th className="p-2 border text-center">Status</th>
-                            <th className="p-2 border text-center">Quantity</th>
-                            <th className="p-2 border text-center">
-                                Harga satuan
-                            </th>
-                            <th className="p-2 border text-center">
-                                Total Harga
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {loans.length > 0 ? (
-                            <>
-                                {loans.map((loan, index) => (
-                                    <tr
-                                        key={loan.id}
-                                        className="hover:bg-gray-50">
-                                        <td className="p-2 border text-center">
-                                            {(meta.from ??
-                                                (page - 1) * perPage + 1) +
-                                                index}
-                                        </td>
-                                        <td className="p-2 border">
-                                            {loan.book.title}
-                                        </td>
-                                        <td className="p-2 border text-center">
-                                            {loan.borrowed_at}
-                                        </td>
-                                        <td className="p-2 border text-center">
-                                            {loan.return_date || '-'}
-                                        </td>
-                                        <td className="p-2 border text-center capitalize">
-                                            {loan.status}
-                                        </td>
-                                        <td className="p-2 border text-center">
-                                            {loan.quantity}
-                                        </td>
-                                        <td className="p-2 border text-center">
-                                            {new Intl.NumberFormat('id-ID', {
-                                                style: 'currency',
-                                                currency: 'IDR',
-                                                minimumFractionDigits: 2,
-                                            }).format(loan.book.harga)}
-                                        </td>
-                                        <td className="p-2 border text-center">
-                                            {new Intl.NumberFormat('id-ID', {
-                                                style: 'currency',
-                                                currency: 'IDR',
-                                                minimumFractionDigits: 2,
-                                            }).format(
-                                                loan.book.harga * loan.quantity,
-                                            )}
+                    {/* Table */}
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full border">
+                            <thead>
+                                <tr className="bg-gray-100">
+                                    <th className="p-2 border text-center">
+                                        No
+                                    </th>
+                                    <th className="p-2 border">Title</th>
+                                    <th className="p-2 border text-center">
+                                        Borrowed At
+                                    </th>
+                                    <th className="p-2 border text-center">
+                                        Return Date
+                                    </th>
+                                    <th className="p-2 border text-center">
+                                        Status
+                                    </th>
+                                    <th className="p-2 border text-center">
+                                        Quantity
+                                    </th>
+                                    <th className="p-2 border text-center">
+                                        Harga satuan
+                                    </th>
+                                    <th className="p-2 border text-center">
+                                        Total Harga
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {loans.length > 0 ? (
+                                    <>
+                                        {loans.map((loan, index) => (
+                                            <tr
+                                                key={loan.id}
+                                                className="hover:bg-gray-50">
+                                                <td className="p-2 border text-center">
+                                                    {(meta.from ??
+                                                        (page - 1) * perPage +
+                                                            1) + index}
+                                                </td>
+                                                <td className="p-2 border">
+                                                    {loan.book.title}
+                                                </td>
+                                                <td className="p-2 border text-center">
+                                                    {loan.borrowed_at}
+                                                </td>
+                                                <td className="p-2 border text-center">
+                                                    {loan.return_date || '-'}
+                                                </td>
+                                                <td className="p-2 border text-center capitalize">
+                                                    {loan.status}
+                                                </td>
+                                                <td className="p-2 border text-center">
+                                                    {loan.quantity}
+                                                </td>
+                                                <td className="p-2 border text-center">
+                                                    {new Intl.NumberFormat(
+                                                        'id-ID',
+                                                        {
+                                                            style: 'currency',
+                                                            currency: 'IDR',
+                                                            minimumFractionDigits: 2,
+                                                        },
+                                                    ).format(loan.book.harga)}
+                                                </td>
+                                                <td className="p-2 border text-center">
+                                                    {new Intl.NumberFormat(
+                                                        'id-ID',
+                                                        {
+                                                            style: 'currency',
+                                                            currency: 'IDR',
+                                                            minimumFractionDigits: 2,
+                                                        },
+                                                    ).format(
+                                                        loan.book.harga *
+                                                            loan.quantity,
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        ))}
+
+                                        {/* === Baris TOTAL === */}
+                                        <tr className="bg-gray-100 font-bold">
+                                            <td
+                                                colSpan={7}
+                                                className="p-2 border text-right">
+                                                TOTAL SEMUA
+                                            </td>
+                                            <td className="p-2 border text-center">
+                                                {new Intl.NumberFormat(
+                                                    'id-ID',
+                                                    {
+                                                        style: 'currency',
+                                                        currency: 'IDR',
+                                                        minimumFractionDigits: 2,
+                                                    },
+                                                ).format(meta.grand_total)}
+                                            </td>
+                                        </tr>
+                                    </>
+                                ) : (
+                                    <tr>
+                                        <td
+                                            colSpan={8}
+                                            className="p-2 text-center">
+                                            No borrowed books
                                         </td>
                                     </tr>
-                                ))}
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
 
-                                {/* === Baris TOTAL === */}
-                                <tr className="bg-gray-100 font-bold">
-                                    <td
-                                        colSpan={7}
-                                        className="p-2 border text-right">
-                                        TOTAL SEMUA
-                                    </td>
-                                    <td className="p-2 border text-center">
-                                        {new Intl.NumberFormat('id-ID', {
-                                            style: 'currency',
-                                            currency: 'IDR',
-                                            minimumFractionDigits: 2,
-                                        }).format(meta.grand_total)}
-                                    </td>
-                                </tr>
-                            </>
+                    {/* Pagination */}
+                    <div className="flex items-center justify-between mt-4">
+                        <button
+                            onClick={() => setPage(p => Math.max(1, p - 1))}
+                            disabled={page <= 1}
+                            className="px-3 py-1 border rounded bg-blue-200 hover:bg-blue-300 disabled:opacity-50">
+                            Prev
+                        </button>
+                        {isValidating ? (
+                            <span className="text-sm text-gray-500">
+                                Searching…
+                            </span>
                         ) : (
-                            <tr>
-                                <td colSpan={8} className="p-2 text-center">
-                                    No borrowed books
-                                </td>
-                            </tr>
+                            <span>
+                                Page {meta.current_page || 1} of{' '}
+                                {meta.last_page || 1}{' '}
+                                <span className="text-gray-500">
+                                    (Total: {meta.total})
+                                </span>
+                            </span>
                         )}
-                    </tbody>
-                </table>
-            </div>
-
-            {/* Pagination */}
-            <div className="flex items-center justify-between mt-4">
-                <button
-                    onClick={() => setPage(p => Math.max(1, p - 1))}
-                    disabled={page <= 1}
-                    className="px-3 py-1 border rounded bg-blue-200 hover:bg-blue-300 disabled:opacity-50">
-                    Prev
-                </button>
-                {isValidating ? (
-                    <span className="text-sm text-gray-500">Searching…</span>
-                ) : (
-                    <span>
-                        Page {meta.current_page || 1} of {meta.last_page || 1}{' '}
-                        <span className="text-gray-500">
-                            (Total: {meta.total})
-                        </span>
-                    </span>
-                )}
-                <button
-                    onClick={() => setPage(p => Math.min(lastPage, p + 1))}
-                    disabled={page >= lastPage}
-                    className="px-3 py-1 border rounded bg-blue-200 hover:bg-blue-300 disabled:opacity-50">
-                    Next
-                </button>
+                        <button
+                            onClick={() =>
+                                setPage(p => Math.min(lastPage, p + 1))
+                            }
+                            disabled={page >= lastPage}
+                            className="px-3 py-1 border rounded bg-blue-200 hover:bg-blue-300 disabled:opacity-50">
+                            Next
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     )
