@@ -17,7 +17,7 @@ export default function AllUsersPage() {
     const searchRef = useRef(null)
 
     const [page, setPage] = useState(1)
-const perPage = 5
+    const perPage = 5
 
     const {
         data: usersResp,
