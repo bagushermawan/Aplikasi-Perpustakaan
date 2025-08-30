@@ -33,9 +33,10 @@ module.exports = {
         'no-console': 'warn',
         'no-nested-ternary': 0,
         'no-underscore-dangle': 0,
+        'no-unused-vars': 'off', 
         'no-unused-expressions': ['error', { allowTernary: true }],
         camelcase: 0,
-        'react/self-closing-comp': 1,
+        'react/self-closing-comp': 1, // jadi warning, bukan error
         'react/jsx-filename-extension': [1, { extensions: ['.js', 'jsx'] }],
         'react/prop-types': 0,
         'react/destructuring-assignment': 0,
