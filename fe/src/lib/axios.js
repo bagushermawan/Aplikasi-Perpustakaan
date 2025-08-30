@@ -8,4 +8,7 @@ const axios = Axios.create({
     withCredentials: true,
 })
 
+axios.defaults.xsrfCookieName = 'XSRF-TOKEN'
+axios.defaults.xsrfHeaderName = 'X-XSRF-TOKEN'
+
 export default axios
