@@ -34,7 +34,7 @@ be/.phpstorm.meta.php
 fe/.next/
 fe/node_modules/
 fe/out/
-fe/.env.local
+# fe/.env.local
 fe/.env.development.local
 fe/.env.test.local
 fe/.env.production.local
