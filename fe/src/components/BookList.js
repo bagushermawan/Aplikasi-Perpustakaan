@@ -5,11 +5,12 @@ import api from '@/lib/axios'
 import { useEffect, useState } from 'react'
 import { useCart } from '../app/(app)/context/CartContext'
 import toast from 'react-hot-toast'
-import { useSearchParams } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 
 const fetcher = url => api.get(url).then(res => res.data)
 
 export default function BookList({ filterType }) {
+    const pathname = usePathname()
     const { addToCart } = useCart()
     const [user, setUser] = useState(null)
 
@@ -81,7 +82,27 @@ export default function BookList({ filterType }) {
                             {books.map(book => (
                                 <div
                                     key={book.id}
-                                    className="border rounded-lg shadow p-4 flex flex-col">
+                                    className="relative border rounded-lg shadow p-4 flex flex-col overflow-hidden">
+                                    {/* Ribbon: Promo / Discount */}
+                                    {pathname === '/dashboard' && (
+                                        <>
+                                            {book.discount > 0 && (
+                                                <div className="absolute -top-5 left-0 w-16 h-16">
+                                                    <div className="absolute transform -rotate-45 bg-red-600 text-center text-white font-medium py-1 left-[-35px] top-[32px] w-[120px]">
+                                                        PROMO
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {book.terjual > 5 && (
+                                                <div className="absolute top-3 left-0 w-16 h-18">
+                                                    <div className="absolute transform -rotate-45 bg-blue-600 text-center text-white font-medium py-1 left-[-37px] top-[20px] w-[175px]">
+                                                        BEST SELLER
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </>
+                                    )}
                                     <div className="flex-1 mb-3">
                                         {book.cover ? (
                                             <img
@@ -97,6 +118,7 @@ export default function BookList({ filterType }) {
                                             </div>
                                         )}
                                     </div>
+
                                     <h3 className="text-lg font-semibold">
                                         {(() => {
                                             const title = book.title
@@ -124,6 +146,7 @@ export default function BookList({ filterType }) {
                                             )
                                         })()}
                                     </h3>
+
                                     <h3 className="text-sm text-gray-600">
                                         {(() => {
                                             const author = book.author
@@ -151,6 +174,7 @@ export default function BookList({ filterType }) {
                                             )
                                         })()}
                                     </h3>
+
                                     <p className="text-sm mt-2 text-gray-600">
                                         {filterType === 'newest' ? (
                                             <>Diposting: {book.created_at}</>
@@ -176,6 +200,7 @@ export default function BookList({ filterType }) {
                                             </>
                                         )}
                                     </p>
+
                                     <p className="text-sm mt-2">
                                         Harga:{' '}
                                         <span className="font-bold">
@@ -185,11 +210,13 @@ export default function BookList({ filterType }) {
                                             }).format(book.harga)}
                                         </span>
                                     </p>
+
                                     {book.discount > 0 && (
                                         <p className="text-sm text-red-600 font-bold">
                                             Diskon: {book.discount}%
                                         </p>
                                     )}
+
                                     {/* Button */}
                                     <div className="mt-3">
                                         {book.available > 0 ? (

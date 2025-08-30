@@ -1,20 +1,36 @@
 'use client'
+
 import { useState, useEffect, useRef } from 'react'
 import useSWR from 'swr'
 import api from '@/lib/axios'
 import toast from 'react-hot-toast'
+import {
+    Button,
+    Group,
+    TextInput,
+    NumberInput,
+    FileInput,
+    Table,
+    Modal,
+    Stack,
+    Paper,
+    Badge,
+    Container,
+    Title,
+    ScrollArea,
+} from '@mantine/core'
+import { DateInput } from '@mantine/dates'
+import { useDisclosure } from '@mantine/hooks'
 
 const fetcher = url => api.get(url).then(res => res.data)
 
 export default function AllBooksPage() {
     const [search, setSearch] = useState('')
+    const [debouncedSearch, setDebouncedSearch] = useState('')
     const [selectedBook, setSelectedBook] = useState(null)
+    const [selectedLoan, setSelectedLoan] = useState(null)
     const [modalType, setModalType] = useState(null)
     const [user, setUser] = useState(null)
-    const [selectedLoan, setSelectedLoan] = useState(null)
-    const [debouncedSearch, setDebouncedSearch] = useState('')
-
-    const [isFocused, setIsFocused] = useState(false)
     const searchRef = useRef(null)
 
     const [page, setPage] = useState(1)
@@ -43,24 +59,7 @@ export default function AllBooksPage() {
         api.get('/api/auth/user').then(res => setUser(res.data))
     }, [])
 
-    useEffect(() => {
-        const handleKey = e => {
-            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
-                e.preventDefault()
-                setIsFocused(true)
-                searchRef.current?.focus()
-            }
-        }
-        window.addEventListener('keydown', handleKey)
-        return () => window.removeEventListener('keydown', handleKey)
-    }, [])
-
-    useEffect(() => {
-        if (search.length > 0) {
-            setIsFocused(false)
-        }
-    }, [search])
-
+    // debounce
     useEffect(() => {
         const t = setTimeout(() => setDebouncedSearch(search), 300)
         return () => clearTimeout(t)
@@ -70,13 +69,13 @@ export default function AllBooksPage() {
         setPage(1)
     }, [debouncedSearch])
 
-    if (error) return <div>Error loading books</div>
+    if (error) return <div>❌ Gagal load buku</div>
 
     const books = booksResp?.data || []
     const meta = booksResp?.meta || {}
     const lastPage = meta.last_page || 1
 
-    // --- Admin Book Handlers ---
+    // --- Handlers (Add/Edit/Delete/Borrow) sama seperti sebelumnya ---
     const handleAdd = async e => {
         e.preventDefault()
         try {
@@ -85,25 +84,21 @@ export default function AllBooksPage() {
             formData.append('author', selectedBook.author)
             formData.append('stock', selectedBook.stock)
             formData.append('harga', selectedBook.harga)
-            if (selectedBook.cover) {
+            if (selectedBook.cover instanceof File)
                 formData.append('cover', selectedBook.cover)
-            }
+            if (selectedBook.discount)
+                formData.append('discount', selectedBook.discount)
 
-            await toast.promise(
-                api.post(`/api/perpus/books`, formData, {
-                    headers: { 'Content-Type': 'multipart/form-data' },
-                }),
-                {
-                    loading: '📡 Menyimpan buku...',
-                    success: '📚 Buku berhasil ditambahkan!',
-                    error: '❌ Gagal menambah buku',
-                },
-            )
+            await toast.promise(api.post(`/api/perpus/books`, formData), {
+                loading: '📡 Menyimpan...',
+                success: '📚 Buku ditambahkan!',
+                error: '❌ Gagal simpan',
+            })
             mutate()
             setModalType(null)
         } catch (err) {
             console.error(err)
-            toast.error('❌ Gagal menambah buku')
+            toast.error('❌ Error simpan')
         }
     }
 
@@ -115,753 +110,555 @@ export default function AllBooksPage() {
             formData.append('author', selectedBook.author)
             formData.append('stock', selectedBook.stock)
             formData.append('harga', selectedBook.harga)
-
-            if (selectedBook.cover instanceof File) {
+            if (selectedBook.cover instanceof File)
                 formData.append('cover', selectedBook.cover)
-            }
+            if (selectedBook.discount)
+                formData.append('discount', selectedBook.discount)
 
             await toast.promise(
                 api.post(
                     `/api/perpus/books/${selectedBook.id}?_method=PUT`,
                     formData,
-                    { headers: { 'Content-Type': 'multipart/form-data' } },
                 ),
                 {
-                    loading: '⏳ Update buku...',
-                    success: '✏️ Buku berhasil diperbarui!',
-                    error: '❌ Gagal update buku',
+                    loading: '⏳ Update...',
+                    success: '✏️ Buku diperbarui!',
+                    error: '❌ Update gagal',
                 },
             )
-
             mutate()
             setModalType(null)
         } catch (err) {
             console.error(err)
-            toast.error('❌ Gagal update buku')
+            toast.error('❌ Error update')
         }
     }
 
-    const handleDelete = async id => {
+    const handleDelete = async () => {
         try {
-            await toast.promise(api.delete(`/api/perpus/books/${id}`), {
-                loading: '⏳ Menghapus...',
-                success: '🗑️ Buku berhasil dihapus!',
-                error: '❌ Gagal menghapus buku',
-            })
-
+            await toast.promise(
+                api.delete(`/api/perpus/books/${selectedBook.id}`),
+                {
+                    loading: '🗑 Menghapus...',
+                    success: '✅ Buku dihapus',
+                    error: '❌ Hapus gagal',
+                },
+            )
             mutate()
             setModalType(null)
         } catch (err) {
             console.error(err)
-            toast.error('❌ Gagal menghapus buku')
         }
     }
 
-    // --- User Borrow Handler ---
-    const handleBorrow = async e => {
-        e.preventDefault()
-
-        await toast.promise(api.post('/api/perpus/loans', selectedLoan), {
-            loading: '⏳ Meminjam buku...',
-            success: '📖 Buku berhasil dipinjam!',
-            error: '❌ Gagal meminjam buku',
-        })
-
-        mutate()
-        setModalType(null)
+    const handleBorrow = async () => {
+        try {
+            await toast.promise(api.post('/api/perpus/loans', selectedLoan), {
+                loading: '⏳ Meminjam buku...',
+                success: '📖 Berhasil dipinjam',
+                error: '❌ Pinjam gagal',
+            })
+            mutate()
+            setModalType(null)
+        } catch (err) {
+            console.error(err)
+        }
     }
 
     return (
-        <div className="py-12">
-            <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
-                <div className="bg-white overflow-hidden shadow rounded-lg">
-                    {isFocused && search.length === 0 && (
-                        <div className="fixed inset-0 backdrop-blur-sm bg-black/30 z-10"></div>
+        <Container size="xl" py="md">
+            <Paper shadow="sm" p="md" radius="md" withBorder>
+                <Group justify="space-between" mb="md">
+                    <Title order={3}>📚 Semua Buku</Title>
+                    {user?.role === 'admin' && (
+                        <Button
+                            color="teal"
+                            onClick={() => {
+                                setSelectedBook({
+                                    title: '',
+                                    author: '',
+                                    stock: 0,
+                                    harga: 0,
+                                    discount: 0,
+                                })
+                                setModalType('add')
+                            }}>
+                            + Tambah Buku
+                        </Button>
                     )}
-                    <div className="p-6">
-                        <h1 className="text-2xl font-bold mb-4">All Books</h1>
+                </Group>
 
-                        {/* Search + Add Button */}
-                        <div className="grid grid-cols-6 gap-2 mb-4">
-                            <input
-                                ref={searchRef}
-                                type="text"
-                                placeholder="Cari Buku ... (Ctrl+K)"
-                                value={search}
-                                onChange={e => setSearch(e.target.value)}
-                                onFocus={() => setIsFocused(true)}
-                                onBlur={() => {
-                                    if (search.length === 0) setIsFocused(false)
-                                }}
-                                className={`px-3 py-2 border rounded relative z-20 ${
-                                    user?.role === 'admin'
-                                        ? 'col-span-5'
-                                        : 'col-span-6'
-                                }`}
-                            />
-                            {user?.role === 'admin' && (
-                                <button
-                                    onClick={() => {
-                                        setSelectedBook({
-                                            title: '',
-                                            author: '',
-                                            stock: '',
-                                            harga: '',
-                                        })
-                                        setModalType('add')
+                <TextInput
+                    placeholder="Cari Buku..."
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    mb="md"
+                />
+
+                <ScrollArea>
+                    <Table
+                        striped
+                        highlightOnHover
+                        withColumnBorders
+                        withTableBorder
+                        verticalSpacing="sm"
+                        horizontalSpacing="md">
+                        <Table.Thead>
+                            <Table.Tr>
+                                <Table.Th>No</Table.Th>
+                                <Table.Th>Judul</Table.Th>
+                                <Table.Th>Cover</Table.Th>
+                                <Table.Th>Penulis</Table.Th>
+                                <Table.Th>Stok</Table.Th>
+                                <Table.Th>Available</Table.Th>
+                                <Table.Th>Discount</Table.Th>
+                                <Table.Th>Harga</Table.Th>
+                                <Table.Th>Aksi</Table.Th>
+                            </Table.Tr>
+                        </Table.Thead>
+                        <Table.Tbody>
+                            {books.map((book, idx) => (
+                                <Table.Tr key={book.id}>
+                                    <Table.Td>
+                                        {(meta.from ??
+                                            (page - 1) * perPage + 1) + idx}
+                                    </Table.Td>
+                                    <Table.Td fw={600}>{book.title}</Table.Td>
+                                    <Table.Td>
+                                        {book.cover ? (
+                                            <img
+                                                src={book.cover}
+                                                width={50}
+                                                height={70}
+                                                style={{
+                                                    objectFit: 'cover',
+                                                    borderRadius: 4,
+                                                }}
+                                            />
+                                        ) : (
+                                            <Badge color="gray" variant="light">
+                                                No Cover
+                                            </Badge>
+                                        )}
+                                    </Table.Td>
+                                    <Table.Td>{book.author || '-'}</Table.Td>
+                                    <Table.Td>
+                                        <Badge
+                                            color={
+                                                book.stock > 5
+                                                    ? 'green'
+                                                    : 'yellow'
+                                            }>
+                                            {book.stock}
+                                        </Badge>
+                                    </Table.Td>
+                                    <Table.Td>
+                                        <Badge
+                                            color={
+                                                book.available > 0
+                                                    ? 'blue'
+                                                    : 'red'
+                                            }>
+                                            {book.available}
+                                        </Badge>
+                                    </Table.Td>
+                                    <Table.Td>
+                                        {book.discount > 0 ? (
+                                            <Badge
+                                                color="pink"
+                                                variant="filled">
+                                                {book.discount}%
+                                            </Badge>
+                                        ) : (
+                                            <span>-</span>
+                                        )}
+                                    </Table.Td>
+                                    <Table.Td>
+                                        <span
+                                            style={{
+                                                color: 'green',
+                                                fontWeight: 600,
+                                            }}>
+                                            Rp{' '}
+                                            {Number(book.harga).toLocaleString(
+                                                'id-ID',
+                                            )}
+                                        </span>
+                                    </Table.Td>
+                                    <Table.Td>
+                                        <Group gap="xs">
+                                            <Button
+                                                size="xs"
+                                                variant="light"
+                                                color="blue"
+                                                onClick={() => {
+                                                    setSelectedBook(book)
+                                                    setModalType('edit')
+                                                }}>
+                                                Edit
+                                            </Button>
+                                            <Button
+                                                size="xs"
+                                                variant="light"
+                                                color="red"
+                                                onClick={() => {
+                                                    setSelectedBook(book)
+                                                    setModalType('delete')
+                                                }}>
+                                                Hapus
+                                            </Button>
+                                        </Group>
+                                    </Table.Td>
+                                </Table.Tr>
+                            ))}
+                        </Table.Tbody>
+                    </Table>
+                </ScrollArea>
+
+                {/* Pagination */}
+                <Group mt="sm" justify="space-between">
+                    <Button
+                        variant="default"
+                        onClick={() => setPage(p => Math.max(1, p - 1))}
+                        disabled={page <= 1}>
+                        Prev
+                    </Button>
+                    {isValidating ? (
+                        <span>⏳ Loading…</span>
+                    ) : (
+                        <span>
+                            Hal {meta.current_page} dari {meta.last_page}{' '}
+                            (Total: {meta.total})
+                        </span>
+                    )}
+                    <Button
+                        variant="default"
+                        onClick={() => setPage(p => Math.min(lastPage, p + 1))}
+                        disabled={page >= lastPage}>
+                        Next
+                    </Button>
+                </Group>
+            </Paper>
+
+            {/* Mantine Modals */}
+            <Modal
+                opened={modalType === 'add'}
+                onClose={() => setModalType(null)}
+                title="➕ Tambah Buku"
+                radius="md"
+                size="md"
+                overlayProps={{ blur: 3 }}
+                centered>
+                <form onSubmit={handleAdd}>
+                    <Stack>
+                        <TextInput
+                            label="Judul"
+                            placeholder="Masukkan judul buku"
+                            value={selectedBook?.title || ''}
+                            onChange={e =>
+                                setSelectedBook({
+                                    ...selectedBook,
+                                    title: e.target.value,
+                                })
+                            }
+                            required
+                        />
+                        <TextInput
+                            label="Penulis"
+                            placeholder="Masukkan nama penulis"
+                            value={selectedBook?.author || ''}
+                            onChange={e =>
+                                setSelectedBook({
+                                    ...selectedBook,
+                                    author: e.target.value,
+                                })
+                            }
+                        />
+
+                        {/* Preview cover */}
+                        {selectedBook?.cover && (
+                            <div style={{ marginTop: 10 }}>
+                                <img
+                                    src={
+                                        selectedBook.cover instanceof File
+                                            ? URL.createObjectURL(
+                                                  selectedBook.cover,
+                                              )
+                                            : selectedBook.cover
+                                    }
+                                    alt="Preview Cover"
+                                    style={{
+                                        width: 120,
+                                        height: 170,
+                                        objectFit: 'cover',
+                                        borderRadius: 8,
+                                        boxShadow: '0 0 6px rgba(0,0,0,0.2)',
                                     }}
-                                    className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 w-full">
-                                    Add Book
-                                </button>
-                            )}
-                        </div>
-                        {isValidating && booksResp && (
-                            <div className="text-xs text-gray-500 mb-3">
-                                Searching…
+                                />
                             </div>
                         )}
+                        <FileInput
+                            label="Cover Buku"
+                            placeholder="Pilih file cover"
+                            accept="image/*"
+                            onChange={file =>
+                                setSelectedBook({
+                                    ...selectedBook,
+                                    cover: file,
+                                })
+                            }
+                            clearable
+                        />
 
-                        {/* Book Table */}
-                        <div className="overflow-x-auto">
-                            <table className="min-w-full border">
-                                <thead>
-                                    <tr className="bg-gray-100">
-                                        <th className="p-2 border">No</th>
-                                        <th className="p-2 border">Title</th>
-                                        <th className="p-2 border">Cover</th>
-                                        <th className="p-2 border">Author</th>
-                                        {user?.role === 'admin' && (
-                                            <th className="p-2 border">
-                                                Stock
-                                            </th>
-                                        )}
-                                        <th className="p-2 border">
-                                            Available
-                                        </th>
-                                        <th className="p-2 border">Harga</th>
-                                        <th className="p-2 border">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {books.map((book, index) => (
-                                        <tr
-                                            key={book.id}
-                                            className="hover:bg-gray-50">
-                                            <td className="p-2 border text-center">
-                                                {(meta.from ??
-                                                    (page - 1) * perPage + 1) +
-                                                    index}
-                                            </td>
-                                            <td className="p-2 border">
-                                                {(() => {
-                                                    const title = book.title
-                                                    const searchTerm =
-                                                        debouncedSearch
-                                                            .trim()
-                                                            .toLowerCase()
-                                                    if (!searchTerm)
-                                                        return title
-                                                    const parts = title.split(
-                                                        new RegExp(
-                                                            `(${searchTerm})`,
-                                                            'gi',
-                                                        ),
-                                                    )
-                                                    return parts.map(
-                                                        (part, idx) =>
-                                                            part.toLowerCase() ===
-                                                            searchTerm ? (
-                                                                <b
-                                                                    key={idx}
-                                                                    className="text-blue-600">
-                                                                    {part}
-                                                                </b>
-                                                            ) : (
-                                                                part
-                                                            ),
-                                                    )
-                                                })()}
-                                            </td>
-                                            <td className="p-2 border text-center">
-                                                {book.cover ? (
-                                                    <img
-                                                        src={book.cover}
-                                                        alt={book.title}
-                                                        className="w-16 h-20 object-cover rounded mx-auto"
-                                                    />
-                                                ) : (
-                                                    <span className="text-gray-400">
-                                                        No cover
-                                                    </span>
-                                                )}
-                                            </td>
-                                            <td className="p-2 border">
-                                                {book.author}
-                                            </td>
-                                            {user?.role === 'admin' && (
-                                                <td className="p-2 border text-center">
-                                                    <span className="font-bold">
-                                                        {book.stock}
-                                                    </span>{' '}
-                                                    {book.borrowed > 0 && (
-                                                        <span className="text-gray-500">
-                                                            (dibeli{' '}
-                                                            {book.borrowed})
-                                                        </span>
-                                                    )}
-                                                </td>
-                                            )}
-                                            <td className="p-2 border text-center">
-                                                {book.available ===
-                                                book.stock ? (
-                                                    <span className="font-bold">
-                                                        All
-                                                    </span>
-                                                ) : (
-                                                    <span className="font-bold">
-                                                        {book.available}
-                                                    </span>
-                                                )}
-                                            </td>
-                                            <td className="p-2 border text-center">
-                                                <span className="font-bold">
-                                                    {new Intl.NumberFormat(
-                                                        'id-ID',
-                                                        {
-                                                            style: 'currency',
-                                                            currency: 'IDR',
-                                                            minimumFractionDigits: 2,
-                                                        },
-                                                    ).format(book.harga)}
-                                                </span>
-                                            </td>
-                                            <td className="p-2 border space-x-2 text-center">
-                                                {user?.role === 'admin' && (
-                                                    <>
-                                                        <button
-                                                            onClick={() => {
-                                                                setSelectedBook(
-                                                                    book,
-                                                                )
-                                                                setModalType(
-                                                                    'edit',
-                                                                )
-                                                            }}
-                                                            className="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded">
-                                                            Edit
-                                                        </button>
-                                                        <button
-                                                            onClick={() => {
-                                                                setSelectedBook(
-                                                                    book,
-                                                                )
-                                                                setModalType(
-                                                                    'delete',
-                                                                )
-                                                            }}
-                                                            className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded">
-                                                            Delete
-                                                        </button>
-                                                    </>
-                                                )}
-                                                {user?.role === 'user' &&
-                                                    book.available > 0 && (
-                                                        <button
-                                                            onClick={() => {
-                                                                setSelectedBook(
-                                                                    book,
-                                                                )
-                                                                setSelectedLoan(
-                                                                    {
-                                                                        user_id:
-                                                                            user.id,
-                                                                        book_id:
-                                                                            book.id,
-                                                                        borrowed_at:
-                                                                            new Date()
-                                                                                .toISOString()
-                                                                                .split(
-                                                                                    'T',
-                                                                                )[0],
-                                                                        return_date:
-                                                                            '',
-                                                                        status: 'borrowed',
-                                                                    },
-                                                                )
-                                                                setModalType(
-                                                                    'borrow',
-                                                                )
-                                                            }}
-                                                            className="px-3 py-1 bg-blue-500 text-white rounded">
-                                                            Pinjam Buku
-                                                        </button>
-                                                    )}
-                                                {user?.role === 'user' &&
-                                                    book.available <= 0 && (
-                                                        <button
-                                                            disabled
-                                                            className="px-3 py-1 bg-gray-400 text-white rounded cursor-not-allowed">
-                                                            Borrowed All
-                                                        </button>
-                                                    )}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
+                        <NumberInput
+                            label="Harga"
+                            placeholder="100000"
+                            value={selectedBook?.harga || 0}
+                            onChange={val =>
+                                setSelectedBook({ ...selectedBook, harga: val })
+                            }
+                            min={0}
+                            required
+                        />
+                        <NumberInput
+                            label="Diskon (%)"
+                            value={selectedBook?.discount || 0}
+                            onChange={val =>
+                                setSelectedBook({
+                                    ...selectedBook,
+                                    discount: val,
+                                })
+                            }
+                            min={0}
+                            max={100}
+                        />
+                        <NumberInput
+                            label="Stok"
+                            placeholder="0"
+                            value={selectedBook?.stock || 0}
+                            onChange={val =>
+                                setSelectedBook({ ...selectedBook, stock: val })
+                            }
+                            min={0}
+                            required
+                        />
+                    </Stack>
 
-                        {/* Pagination */}
-                        <div className="flex items-center justify-between mt-4">
-                            <button
-                                onClick={() => setPage(p => Math.max(1, p - 1))}
-                                disabled={page <= 1}
-                                className="px-3 py-1 border rounded bg-blue-200 hover:bg-blue-300 disabled:opacity-50">
-                                Prev
-                            </button>
-                            {isValidating ? (
-                                <span className="text-sm text-gray-500">
-                                    Searching…
-                                </span>
-                            ) : (
-                                <span>
-                                    Page {meta.current_page || 1} of{' '}
-                                    {meta.last_page || 1}{' '}
-                                    <span className="text-gray-500">
-                                        (Total: {meta.total})
-                                    </span>
-                                </span>
-                            )}
-                            <button
-                                onClick={() =>
-                                    setPage(p => Math.min(lastPage, p + 1))
-                                }
-                                disabled={page >= lastPage}
-                                className="px-3 py-1 border rounded bg-blue-200 hover:bg-blue-300 disabled:opacity-50">
-                                Next
-                            </button>
-                        </div>
+                    <Group justify="flex-end" mt="lg">
+                        <Button
+                            variant="default"
+                            onClick={() => setModalType(null)}>
+                            Batal
+                        </Button>
+                        <Button type="submit" color="green">
+                            Simpan
+                        </Button>
+                    </Group>
+                </form>
+            </Modal>
 
-                        {/* --- Modals --- */}
-                        {/* Add Book */}
-                        {modalType === 'add' &&
-                            selectedBook &&
-                            user?.role === 'admin' && (
-                                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-30">
-                                    <div className="bg-white p-6 rounded shadow-md w-96">
-                                        <h2 className="text-lg font-bold mb-4">
-                                            Add Book
-                                        </h2>
-                                        <form
-                                            onSubmit={handleAdd}
-                                            className="space-y-3">
-                                            {/* Title */}
-                                            <div className="space-y-1">
-                                                <label className="block text-sm font-medium text-gray-700">
-                                                    Title
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    value={selectedBook.title}
-                                                    onChange={e =>
-                                                        setSelectedBook({
-                                                            ...selectedBook,
-                                                            title: e.target
-                                                                .value,
-                                                        })
-                                                    }
-                                                    className="w-full border p-2 rounded"
-                                                    required
-                                                />
-                                            </div>
+            <Modal
+                opened={modalType === 'edit'}
+                onClose={() => setModalType(null)}
+                title="✏️ Edit Buku"
+                radius="md"
+                size="md"
+                overlayProps={{ blur: 3 }}
+                centered>
+                <form onSubmit={handleEdit}>
+                    <Stack>
+                        <TextInput
+                            label="Judul"
+                            value={selectedBook?.title || ''}
+                            onChange={e =>
+                                setSelectedBook({
+                                    ...selectedBook,
+                                    title: e.target.value,
+                                })
+                            }
+                            required
+                        />
+                        <TextInput
+                            label="Penulis"
+                            value={selectedBook?.author || ''}
+                            onChange={e =>
+                                setSelectedBook({
+                                    ...selectedBook,
+                                    author: e.target.value,
+                                })
+                            }
+                        />
+                        {/* Preview cover lama atau baru */}
+                        {selectedBook?.cover && (
+                            <div style={{ marginTop: 10 }}>
+                                <img
+                                    src={
+                                        selectedBook.cover instanceof File
+                                            ? URL.createObjectURL(
+                                                  selectedBook.cover,
+                                              ) // preview file baru
+                                            : selectedBook.cover // URL cover lama
+                                    }
+                                    alt="Preview Cover"
+                                    style={{
+                                        width: 120,
+                                        height: 170,
+                                        objectFit: 'cover',
+                                        borderRadius: 8,
+                                        boxShadow: '0 0 6px rgba(0,0,0,0.2)',
+                                    }}
+                                />
+                            </div>
+                        )}
+                        <FileInput
+                            label="Cover Buku"
+                            placeholder="Pilih cover baru"
+                            accept="image/*"
+                            onChange={file =>
+                                setSelectedBook({
+                                    ...selectedBook,
+                                    cover: file,
+                                })
+                            }
+                            clearable
+                        />
+                        <NumberInput
+                            label="Harga"
+                            value={selectedBook?.harga || 0}
+                            onChange={val =>
+                                setSelectedBook({ ...selectedBook, harga: val })
+                            }
+                            min={0}
+                            required
+                        />
+                        <NumberInput
+                            label="Diskon (%)"
+                            value={selectedBook?.discount || 0}
+                            onChange={val =>
+                                setSelectedBook({
+                                    ...selectedBook,
+                                    discount: val,
+                                })
+                            }
+                            min={0}
+                            max={100}
+                        />
+                        <NumberInput
+                            label="Stok"
+                            value={selectedBook?.stock || 0}
+                            onChange={val =>
+                                setSelectedBook({ ...selectedBook, stock: val })
+                            }
+                            min={0}
+                            required
+                        />
+                    </Stack>
 
-                                            {/* Author */}
-                                            <div className="space-y-1">
-                                                <label className="block text-sm font-medium text-gray-700">
-                                                    Author
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    value={selectedBook.author}
-                                                    onChange={e =>
-                                                        setSelectedBook({
-                                                            ...selectedBook,
-                                                            author: e.target
-                                                                .value,
-                                                        })
-                                                    }
-                                                    className="w-full border p-2 rounded"
-                                                />
-                                            </div>
+                    <Group justify="flex-end" mt="lg">
+                        <Button
+                            variant="default"
+                            onClick={() => setModalType(null)}>
+                            Batal
+                        </Button>
+                        <Button type="submit" color="blue">
+                            Update
+                        </Button>
+                    </Group>
+                </form>
+            </Modal>
 
-                                            {/* Cover Upload */}
-                                            <div className="space-y-1">
-                                                <label className="block text-sm font-medium text-gray-700">
-                                                    Cover
-                                                </label>
-                                                <input
-                                                    type="file"
-                                                    accept="image/*"
-                                                    onChange={e =>
-                                                        setSelectedBook({
-                                                            ...selectedBook,
-                                                            cover: e.target
-                                                                .files[0],
-                                                        })
-                                                    }
-                                                    className="w-full border p-2 rounded"
-                                                />
-                                            </div>
+            <Modal
+                opened={modalType === 'delete'}
+                onClose={() => setModalType(null)}
+                title="⚠️ Hapus Buku?"
+                radius="md"
+                size="sm"
+                overlayProps={{ blur: 3, backgroundOpacity: 0.55 }}
+                centered>
+                <Stack align="center" spacing="sm">
+                    {selectedBook?.cover && (
+                        <img
+                            src={selectedBook.cover}
+                            alt={selectedBook.title}
+                            style={{
+                                width: 100,
+                                height: 140,
+                                objectFit: 'cover',
+                                borderRadius: 8,
+                            }}
+                        />
+                    )}
+                    <Title order={5}>
+                        Yakin mau hapus buku:{' '}
+                        <span style={{ color: 'red' }}>
+                            {selectedBook?.title}
+                        </span>{' '}
+                        ?
+                    </Title>
+                </Stack>
+                <Group justify="flex-end" mt="lg">
+                    <Button
+                        variant="default"
+                        onClick={() => setModalType(null)}>
+                        Batal
+                    </Button>
+                    <Button color="red" onClick={handleDelete}>
+                        Hapus
+                    </Button>
+                </Group>
+            </Modal>
 
-                                            {/* Stock */}
-                                            <div className="space-y-1">
-                                                <label className="block text-sm font-medium text-gray-700">
-                                                    Stock
-                                                </label>
-                                                <input
-                                                    type="number"
-                                                    value={selectedBook.stock}
-                                                    onChange={e =>
-                                                        setSelectedBook({
-                                                            ...selectedBook,
-                                                            stock: e.target
-                                                                .value,
-                                                        })
-                                                    }
-                                                    className="w-full border p-2 rounded"
-                                                    required
-                                                />
-                                            </div>
-
-                                            {/* Price */}
-                                            <div className="space-y-1">
-                                                <label className="block text-sm font-medium text-gray-700">
-                                                    Harga
-                                                </label>
-                                                <input
-                                                    type="number"
-                                                    value={selectedBook.harga}
-                                                    onChange={e =>
-                                                        setSelectedBook({
-                                                            ...selectedBook,
-                                                            harga: e.target
-                                                                .value,
-                                                        })
-                                                    }
-                                                    className="w-full border p-2 rounded"
-                                                    required
-                                                />
-                                            </div>
-
-                                            <div className="flex justify-end space-x-2">
-                                                <button
-                                                    type="button"
-                                                    onClick={() =>
-                                                        setModalType(null)
-                                                    }
-                                                    className="px-3 py-1 bg-gray-400 text-white rounded">
-                                                    Batal
-                                                </button>
-                                                <button
-                                                    type="submit"
-                                                    className="px-3 py-1 bg-green-600 text-white rounded">
-                                                    Simpan
-                                                </button>
-                                            </div>
-                                        </form>
-                                    </div>
-                                </div>
-                            )}
-
-                        {/* Edit Book */}
-                        {modalType === 'edit' &&
-                            selectedBook &&
-                            user?.role === 'admin' && (
-                                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-30">
-                                    <div className="bg-white p-6 rounded shadow-md w-96">
-                                        <h2 className="text-lg font-bold mb-4">
-                                            Edit Book
-                                        </h2>
-                                        <form
-                                            onSubmit={handleEdit}
-                                            className="space-y-3">
-                                            {/* Title */}
-                                            <div className="space-y-1">
-                                                <label className="block text-sm font-medium text-gray-700">
-                                                    Title
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    value={selectedBook.title}
-                                                    onChange={e =>
-                                                        setSelectedBook({
-                                                            ...selectedBook,
-                                                            title: e.target
-                                                                .value,
-                                                        })
-                                                    }
-                                                    className="w-full border p-2 rounded"
-                                                    required
-                                                />
-                                            </div>
-
-                                            {/* Author */}
-                                            <div className="space-y-1">
-                                                <label className="block text-sm font-medium text-gray-700">
-                                                    Author
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    value={selectedBook.author}
-                                                    onChange={e =>
-                                                        setSelectedBook({
-                                                            ...selectedBook,
-                                                            author: e.target
-                                                                .value,
-                                                        })
-                                                    }
-                                                    className="w-full border p-2 rounded"
-                                                />
-                                            </div>
-
-                                            {/* Cover Upload */}
-                                            <div className="space-y-1">
-                                                <label className="block text-sm font-medium text-gray-700">
-                                                    Cover
-                                                </label>
-
-                                                {/* preview cover lama */}
-                                                {selectedBook.cover &&
-                                                    typeof selectedBook.cover ===
-                                                        'string' && (
-                                                        <img
-                                                            src={
-                                                                selectedBook.cover
-                                                            }
-                                                            alt={
-                                                                selectedBook.title
-                                                            }
-                                                            className="w-20 h-28 object-cover rounded mb-2"
-                                                        />
-                                                    )}
-
-                                                <input
-                                                    type="file"
-                                                    accept="image/*"
-                                                    onChange={e =>
-                                                        setSelectedBook({
-                                                            ...selectedBook,
-                                                            cover: e.target
-                                                                .files[0], // file baru
-                                                        })
-                                                    }
-                                                    className="w-full border p-2 rounded"
-                                                />
-                                            </div>
-
-                                            {/* Stock */}
-                                            <div className="space-y-1">
-                                                <label className="block text-sm font-medium text-gray-700">
-                                                    Stock
-                                                </label>
-                                                <input
-                                                    type="number"
-                                                    value={selectedBook.stock}
-                                                    onChange={e =>
-                                                        setSelectedBook({
-                                                            ...selectedBook,
-                                                            stock: e.target
-                                                                .value,
-                                                        })
-                                                    }
-                                                    className="w-full border p-2 rounded"
-                                                    required
-                                                />
-                                            </div>
-
-                                            {/* Price */}
-                                            <div className="space-y-1">
-                                                <label className="block text-sm font-medium text-gray-700">
-                                                    Harga
-                                                </label>
-                                                <input
-                                                    type="number"
-                                                    value={selectedBook.harga}
-                                                    onChange={e =>
-                                                        setSelectedBook({
-                                                            ...selectedBook,
-                                                            harga: e.target
-                                                                .value,
-                                                        })
-                                                    }
-                                                    className="w-full border p-2 rounded"
-                                                    required
-                                                />
-                                            </div>
-
-                                            <div className="flex justify-end space-x-2">
-                                                <button
-                                                    type="button"
-                                                    onClick={() =>
-                                                        setModalType(null)
-                                                    }
-                                                    className="px-3 py-1 bg-gray-400 text-white rounded">
-                                                    Batal
-                                                </button>
-                                                <button
-                                                    type="submit"
-                                                    className="px-3 py-1 bg-blue-600 text-white rounded">
-                                                    Simpan
-                                                </button>
-                                            </div>
-                                        </form>
-                                    </div>
-                                </div>
-                            )}
-
-                        {/* Delete Book */}
-                        {modalType === 'delete' &&
-                            selectedBook &&
-                            user?.role === 'admin' && (
-                                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-30">
-                                    <div className="bg-white p-6 rounded shadow-md w-80">
-                                        <h2 className="text-lg font-bold mb-4">
-                                            Delete Book?
-                                        </h2>
-                                        {/* Cover Preview */}
-                                        {selectedBook.cover && (
-                                            <img
-                                                src={
-                                                    selectedBook.cover.startsWith(
-                                                        'http',
-                                                    )
-                                                        ? selectedBook.cover
-                                                        : `/storage/${selectedBook.cover}`
-                                                }
-                                                alt={selectedBook.title}
-                                                className="w-32 h-48 object-cover rounded mx-auto mb-4 shadow"
-                                            />
-                                        )}
-                                        <p className="text-center">
-                                            Yakin mau hapus buku:{' '}
-                                            <b>{selectedBook.title}</b>?
-                                        </p>
-
-                                        <div className="flex justify-center space-x-2 mt-6">
-                                            <button
-                                                onClick={() =>
-                                                    setModalType(null)
-                                                }
-                                                className="px-3 py-1 bg-gray-400 text-white rounded">
-                                                Batal
-                                            </button>
-                                            <button
-                                                onClick={() =>
-                                                    handleDelete(
-                                                        selectedBook.id,
-                                                    )
-                                                }
-                                                className="px-3 py-1 bg-red-600 text-white rounded">
-                                                Hapus
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                        {/* Borrow Book (User) */}
-                        {modalType === 'borrow' &&
-                            selectedLoan &&
-                            user?.role === 'user' && (
-                                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-                                    <div className="bg-white p-6 rounded shadow-md w-96">
-                                        <h2 className="text-lg font-bold mb-4">
-                                            Pinjam Buku
-                                        </h2>
-                                        <form
-                                            onSubmit={handleBorrow}
-                                            className="space-y-3">
-                                            {/* Book */}
-                                            <div className="space-y-1">
-                                                <label className="block text-sm font-medium text-gray-700">
-                                                    Book
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    value={selectedBook.title}
-                                                    readOnly
-                                                    className="w-full border p-2 rounded bg-gray-100"
-                                                />
-                                            </div>
-
-                                            {/* Borrowed At */}
-                                            <div className="space-y-1">
-                                                <label className="block text-sm font-medium text-gray-700">
-                                                    Borrowed At
-                                                </label>
-                                                <input
-                                                    type="date"
-                                                    value={
-                                                        selectedLoan.borrowed_at
-                                                    }
-                                                    onChange={e =>
-                                                        setSelectedLoan({
-                                                            ...selectedLoan,
-                                                            borrowed_at:
-                                                                e.target.value,
-                                                        })
-                                                    }
-                                                    className="w-full border p-2 rounded"
-                                                    required
-                                                />
-                                            </div>
-
-                                            {/* Return Date */}
-                                            <div className="space-y-1">
-                                                <label className="block text-sm font-medium text-gray-700">
-                                                    Return Date
-                                                </label>
-                                                <input
-                                                    type="date"
-                                                    value={
-                                                        selectedLoan.return_date ||
-                                                        ''
-                                                    }
-                                                    onChange={e =>
-                                                        setSelectedLoan({
-                                                            ...selectedLoan,
-                                                            return_date:
-                                                                e.target
-                                                                    .value ||
-                                                                null,
-                                                        })
-                                                    }
-                                                    className="w-full border p-2 rounded"
-                                                />
-                                            </div>
-
-                                            <div className="flex justify-end space-x-2">
-                                                <button
-                                                    type="button"
-                                                    onClick={() =>
-                                                        setModalType(null)
-                                                    }
-                                                    className="px-3 py-1 bg-gray-400 text-white rounded">
-                                                    Batal
-                                                </button>
-                                                <button
-                                                    type="submit"
-                                                    className="px-3 py-1 bg-green-600 text-white rounded">
-                                                    Pinjam
-                                                </button>
-                                            </div>
-                                        </form>
-                                    </div>
-                                </div>
-                            )}
-                    </div>
-                </div>
-            </div>
-        </div>
+            <Modal
+                opened={modalType === 'borrow'}
+                onClose={() => setModalType(null)}
+                title="Pinjam Buku"
+                centered>
+                <form onSubmit={handleBorrow}>
+                    <TextInput
+                        label="Buku"
+                        value={selectedBook?.title || ''}
+                        readOnly
+                    />
+                    <DateInput
+                        label="Tanggal Pinjam"
+                        value={
+                            selectedLoan?.borrowed_at
+                                ? new Date(selectedLoan.borrowed_at)
+                                : null
+                        }
+                        onChange={d =>
+                            setSelectedLoan({
+                                ...selectedLoan,
+                                borrowed_at: d.toISOString().split('T')[0],
+                            })
+                        }
+                    />
+                    <DateInput
+                        label="Tanggal Kembali"
+                        value={
+                            selectedLoan?.return_date
+                                ? new Date(selectedLoan.return_date)
+                                : null
+                        }
+                        onChange={d =>
+                            setSelectedLoan({
+                                ...selectedLoan,
+                                return_date: d
+                                    ? d.toISOString().split('T')[0]
+                                    : null,
+                            })
+                        }
+                    />
+                    <Group justify="flex-end" mt="md">
+                        <Button
+                            variant="default"
+                            onClick={() => setModalType(null)}>
+                            Batal
+                        </Button>
+                        <Button type="submit">Pinjam</Button>
+                    </Group>
+                </form>
+            </Modal>
+        </Container>
     )
 }

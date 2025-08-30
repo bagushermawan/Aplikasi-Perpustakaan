@@ -1,20 +1,29 @@
 'use client'
-import { useState, useRef, useEffect } from 'react'
+
+import { useState, useEffect, useRef } from 'react'
 import useSWR from 'swr'
 import api from '@/lib/axios'
 import toast from 'react-hot-toast'
+import {
+    Button,
+    Group,
+    TextInput,
+    Table,
+    Modal,
+    Paper,
+    Container,
+    Title,
+    ScrollArea,
+    Stack,
+} from '@mantine/core'
 
 const fetcher = url => api.get(url).then(res => res.data)
 
 export default function AllUsersPage() {
     const [search, setSearch] = useState('')
     const [debouncedSearch, setDebouncedSearch] = useState('')
-
     const [selectedUser, setSelectedUser] = useState(null)
     const [modalType, setModalType] = useState(null)
-
-    const [isFocused, setIsFocused] = useState(false)
-    const searchRef = useRef(null)
 
     const [page, setPage] = useState(1)
     const perPage = 5
@@ -38,36 +47,16 @@ export default function AllUsersPage() {
         },
     )
 
-    // ─── Events ─────────────────────────────────────────────
-    useEffect(() => {
-        const handleKey = e => {
-            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
-                e.preventDefault()
-                setIsFocused(true)
-                searchRef.current?.focus()
-            }
-        }
-        window.addEventListener('keydown', handleKey)
-        return () => window.removeEventListener('keydown', handleKey)
-    }, [])
-
-    // overlay fokus
-    useEffect(() => {
-        if (search.length > 0) setIsFocused(false)
-    }, [search])
-
     useEffect(() => {
         const t = setTimeout(() => setDebouncedSearch(search), 300)
         return () => clearTimeout(t)
     }, [search])
 
-    // reset paging saat keyword berubah
     useEffect(() => {
         setPage(1)
     }, [debouncedSearch])
 
-    // ─── Data helpers ───────────────────────────────────────
-    if (error) return <div>Error loading users</div>
+    if (error) return <div>❌ Gagal memuat user</div>
 
     const users = usersResp?.data || []
     const meta = usersResp?.meta || {}
@@ -77,8 +66,8 @@ export default function AllUsersPage() {
         e.preventDefault()
         await toast.promise(api.post(`/api/perpus/users`, selectedUser), {
             loading: '📡 Menyimpan user...',
-            success: '👤 User berhasil ditambahkan!',
-            error: '❌ Gagal menambah user',
+            success: '👤 User ditambahkan!',
+            error: '❌ Gagal tambah user',
         })
         mutate()
         setModalType(null)
@@ -90,7 +79,7 @@ export default function AllUsersPage() {
             api.put(`/api/perpus/users/${selectedUser.id}`, selectedUser),
             {
                 loading: '⏳ Update user...',
-                success: '✏️ User berhasil diperbarui!',
+                success: '✏️ User diperbarui!',
                 error: '❌ Gagal update user',
             },
         )
@@ -101,335 +90,249 @@ export default function AllUsersPage() {
     const handleDelete = async id => {
         await toast.promise(api.delete(`/api/perpus/users/${id}`), {
             loading: '⏳ Menghapus user...',
-            success: '🗑️ User berhasil dihapus!',
-            error: '❌ Gagal menghapus user',
+            success: '🗑️ User dihapus!',
+            error: '❌ Gagal hapus user',
         })
         mutate()
         setModalType(null)
     }
 
     return (
-        <div className="py-12">
-            <div className="max-w-7xl mx-auto sm:px-6 lg:px-8">
-                <div className="bg-white overflow-hidden shadow rounded-lg">
-                    {isFocused && search.length === 0 && (
-                        <div className="fixed inset-0 backdrop-blur-sm bg-black/30 z-10"></div>
+        <Container size="lg" py="md">
+            <Paper shadow="sm" p="md" radius="md" withBorder>
+                <Group justify="space-between" mb="md">
+                    <Title order={3}>👥 Semua User</Title>
+                    <Button
+                        color="teal"
+                        onClick={() => {
+                            setSelectedUser({
+                                name: '',
+                                email: '',
+                                password: '',
+                            })
+                            setModalType('add')
+                        }}>
+                        + Tambah User
+                    </Button>
+                </Group>
+
+                <TextInput
+                    placeholder="Cari user..."
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    mb="md"
+                />
+
+                <ScrollArea>
+                    <Table
+                        striped
+                        highlightOnHover
+                        withTableBorder
+                        withColumnBorders>
+                        <Table.Thead>
+                            <Table.Tr>
+                                <Table.Th>No</Table.Th>
+                                <Table.Th>Nama</Table.Th>
+                                <Table.Th>Email</Table.Th>
+                                <Table.Th>Aksi</Table.Th>
+                            </Table.Tr>
+                        </Table.Thead>
+                        <Table.Tbody>
+                            {users.map((u, idx) => (
+                                <Table.Tr key={u.id}>
+                                    <Table.Td>
+                                        {(meta.from ??
+                                            (page - 1) * perPage + 1) + idx}
+                                    </Table.Td>
+                                    <Table.Td fw={500}>{u.name}</Table.Td>
+                                    <Table.Td>{u.email}</Table.Td>
+                                    <Table.Td>
+                                        <Group gap="xs">
+                                            <Button
+                                                size="xs"
+                                                color="blue"
+                                                variant="light"
+                                                onClick={() => {
+                                                    setSelectedUser(u)
+                                                    setModalType('edit')
+                                                }}>
+                                                Edit
+                                            </Button>
+                                            <Button
+                                                size="xs"
+                                                color="red"
+                                                variant="light"
+                                                onClick={() => {
+                                                    setSelectedUser(u)
+                                                    setModalType('delete')
+                                                }}>
+                                                Delete
+                                            </Button>
+                                        </Group>
+                                    </Table.Td>
+                                </Table.Tr>
+                            ))}
+                        </Table.Tbody>
+                    </Table>
+                </ScrollArea>
+
+                {/* Pagination */}
+                <Group mt="md" justify="space-between">
+                    <Button
+                        variant="default"
+                        onClick={() => setPage(p => Math.max(1, p - 1))}
+                        disabled={page <= 1}>
+                        Prev
+                    </Button>
+                    {isValidating ? (
+                        <span>⏳ Memuat…</span>
+                    ) : (
+                        <span>
+                            Page {meta.current_page} dari {meta.last_page}{' '}
+                            (Total: {meta.total})
+                        </span>
                     )}
-                    <div className="p-6">
-                        <h1 className="text-2xl font-bold mb-4">All Users</h1>
+                    <Button
+                        variant="default"
+                        onClick={() => setPage(p => Math.min(lastPage, p + 1))}
+                        disabled={page >= lastPage}>
+                        Next
+                    </Button>
+                </Group>
+            </Paper>
 
-                        {/* Search + Add */}
-                        <div className="grid grid-cols-6 gap-2 mb-4">
-                            <input
-                                ref={searchRef}
-                                type="text"
-                                placeholder="Cari user... (Ctrl+K)"
-                                value={search}
-                                onChange={e => setSearch(e.target.value)}
-                                onFocus={() => setIsFocused(true)}
-                                onBlur={() => {
-                                    if (search.length === 0) setIsFocused(false)
-                                }}
-                                className="px-3 py-2 border rounded col-span-5 relative z-20"
-                            />
-                            <button
-                                onClick={() => {
-                                    setSelectedUser({
-                                        name: '',
-                                        email: '',
-                                        password: '',
-                                    }) // 👈 isi semua field
-                                    setModalType('add')
-                                }}
-                                className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 w-full">
-                                Add User
-                            </button>
-                        </div>
+            {/* Modal Add */}
+            <Modal
+                opened={modalType === 'add'}
+                onClose={() => setModalType(null)}
+                title="➕ Tambah User"
+                centered
+                radius="md"
+                overlayProps={{ blur: 3 }}>
+                <form onSubmit={handleAdd}>
+                    <Stack>
+                        <TextInput
+                            label="Nama"
+                            value={selectedUser?.name || ''}
+                            onChange={e =>
+                                setSelectedUser({
+                                    ...selectedUser,
+                                    name: e.target.value,
+                                })
+                            }
+                            required
+                        />
+                        <TextInput
+                            label="Email"
+                            type="email"
+                            value={selectedUser?.email || ''}
+                            onChange={e =>
+                                setSelectedUser({
+                                    ...selectedUser,
+                                    email: e.target.value,
+                                })
+                            }
+                            required
+                        />
+                        <TextInput
+                            label="Password"
+                            type="password"
+                            value={selectedUser?.password || ''}
+                            onChange={e =>
+                                setSelectedUser({
+                                    ...selectedUser,
+                                    password: e.target.value,
+                                })
+                            }
+                            required
+                        />
+                    </Stack>
+                    <Group justify="flex-end" mt="lg">
+                        <Button
+                            variant="default"
+                            onClick={() => setModalType(null)}>
+                            Batal
+                        </Button>
+                        <Button type="submit" color="teal">
+                            Simpan
+                        </Button>
+                    </Group>
+                </form>
+            </Modal>
 
-                        {/* Table */}
-                        <div className="overflow-x-auto">
-                            <table className="min-w-full border">
-                                <thead>
-                                    <tr className="bg-gray-100">
-                                        <th className="p-2 border">No</th>
-                                        <th className="p-2 border">Name</th>
-                                        <th className="p-2 border">Email</th>
-                                        <th className="p-2 border">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {users.map((user, index) => (
-                                        <tr
-                                            key={user.id}
-                                            className="hover:bg-gray-50">
-                                            <td className="p-2 border text-center">
-                                                {(meta.from ??
-                                                    (page - 1) * perPage + 1) +
-                                                    index}
-                                            </td>
-                                            <td className="p-2 border">
-                                                {(() => {
-                                                    const name = user.name
-                                                    const term = debouncedSearch
-                                                        .trim()
-                                                        .toLowerCase()
-                                                    if (!term) return name
-                                                    const parts = name.split(
-                                                        new RegExp(
-                                                            `(${term})`,
-                                                            'gi',
-                                                        ),
-                                                    )
-                                                    return parts.map(
-                                                        (part, idx) =>
-                                                            part.toLowerCase() ===
-                                                            term ? (
-                                                                <b
-                                                                    key={idx}
-                                                                    className="text-blue-600">
-                                                                    {part}
-                                                                </b>
-                                                            ) : (
-                                                                part
-                                                            ),
-                                                    )
-                                                })()}
-                                            </td>
-                                            <td className="p-2 border">
-                                                {(() => {
-                                                    const email = user.email
-                                                    const term = debouncedSearch
-                                                        .trim()
-                                                        .toLowerCase()
-                                                    if (!term) return email
-                                                    const parts = email.split(
-                                                        new RegExp(
-                                                            `(${term})`,
-                                                            'gi',
-                                                        ),
-                                                    )
-                                                    return parts.map(
-                                                        (part, idx) =>
-                                                            part.toLowerCase() ===
-                                                            term ? (
-                                                                <b
-                                                                    key={idx}
-                                                                    className="text-blue-600">
-                                                                    {part}
-                                                                </b>
-                                                            ) : (
-                                                                part
-                                                            ),
-                                                    )
-                                                })()}
-                                            </td>
-                                            <td className="p-2 border space-x-2 text-center">
-                                                <button
-                                                    onClick={() => {
-                                                        setSelectedUser(user)
-                                                        setModalType('edit')
-                                                    }}
-                                                    className="px-3 py-1 bg-blue-500 text-white rounded">
-                                                    Edit
-                                                </button>
-                                                <button
-                                                    onClick={() => {
-                                                        setSelectedUser(user)
-                                                        setModalType('delete')
-                                                    }}
-                                                    className="px-3 py-1 bg-red-500 text-white rounded">
-                                                    Delete
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
+            {/* Modal Edit */}
+            <Modal
+                opened={modalType === 'edit'}
+                onClose={() => setModalType(null)}
+                title="✏️ Edit User"
+                centered
+                radius="md"
+                overlayProps={{ blur: 3 }}>
+                <form onSubmit={handleEdit}>
+                    <Stack>
+                        <TextInput
+                            label="Nama"
+                            value={selectedUser?.name || ''}
+                            onChange={e =>
+                                setSelectedUser({
+                                    ...selectedUser,
+                                    name: e.target.value,
+                                })
+                            }
+                            required
+                        />
+                        <TextInput
+                            label="Email"
+                            type="email"
+                            value={selectedUser?.email || ''}
+                            onChange={e =>
+                                setSelectedUser({
+                                    ...selectedUser,
+                                    email: e.target.value,
+                                })
+                            }
+                            required
+                        />
+                    </Stack>
+                    <Group justify="flex-end" mt="lg">
+                        <Button
+                            variant="default"
+                            onClick={() => setModalType(null)}>
+                            Batal
+                        </Button>
+                        <Button type="submit" color="blue">
+                            Update
+                        </Button>
+                    </Group>
+                </form>
+            </Modal>
 
-                        {/* Pagination */}
-                        <div className="flex items-center justify-between mt-4">
-                            <button
-                                onClick={() => setPage(p => Math.max(1, p - 1))}
-                                disabled={page <= 1}
-                                className="px-3 py-1 border rounded bg-blue-200 hover:bg-blue-300 disabled:opacity-50">
-                                Prev
-                            </button>
-                            {isValidating ? (
-                                <span className="text-sm text-gray-500">
-                                    Searching…
-                                </span>
-                            ) : (
-                                <span>
-                                    Page {meta.current_page || 1} of{' '}
-                                    {meta.last_page || 1}{' '}
-                                    <span className="text-gray-500">
-                                        (Total: {meta.total})
-                                    </span>
-                                </span>
-                            )}
-                            <button
-                                onClick={() =>
-                                    setPage(p => Math.min(lastPage, p + 1))
-                                }
-                                disabled={page >= lastPage}
-                                className="px-3 py-1 border rounded bg-blue-200 hover:bg-blue-300 disabled:opacity-50">
-                                Next
-                            </button>
-                        </div>
-
-                        {/* Modal Add */}
-                        {modalType === 'add' && selectedUser && (
-                            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-30">
-                                <div className="bg-white p-6 rounded shadow-md w-96">
-                                    <h2 className="text-lg font-bold mb-4">
-                                        Add User
-                                    </h2>
-                                    <form
-                                        onSubmit={handleAdd}
-                                        className="space-y-3">
-                                        <input
-                                            type="text"
-                                            placeholder="Name"
-                                            value={selectedUser.name}
-                                            onChange={e =>
-                                                setSelectedUser({
-                                                    ...selectedUser,
-                                                    name: e.target.value,
-                                                })
-                                            }
-                                            className="w-full border p-2 rounded"
-                                            required
-                                        />
-                                        <input
-                                            type="email"
-                                            placeholder="Email"
-                                            value={selectedUser.email}
-                                            onChange={e =>
-                                                setSelectedUser({
-                                                    ...selectedUser,
-                                                    email: e.target.value,
-                                                })
-                                            }
-                                            className="w-full border p-2 rounded"
-                                            required
-                                        />
-                                        <input
-                                            type="password"
-                                            placeholder="Password"
-                                            value={selectedUser.password}
-                                            onChange={e =>
-                                                setSelectedUser({
-                                                    ...selectedUser,
-                                                    password: e.target.value,
-                                                })
-                                            }
-                                            className="w-full border p-2 rounded"
-                                            required
-                                        />
-                                        <div className="flex justify-end space-x-2">
-                                            <button
-                                                type="button"
-                                                onClick={() =>
-                                                    setModalType(null)
-                                                }
-                                                className="px-3 py-1 bg-gray-400 text-white rounded">
-                                                Batal
-                                            </button>
-                                            <button
-                                                type="submit"
-                                                className="px-3 py-1 bg-green-600 text-white rounded">
-                                                Simpan
-                                            </button>
-                                        </div>
-                                    </form>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Modal Edit */}
-                        {modalType === 'edit' && selectedUser && (
-                            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-30">
-                                <div className="bg-white p-6 rounded shadow-md w-96">
-                                    <h2 className="text-lg font-bold mb-4">
-                                        Edit User
-                                    </h2>
-                                    <form
-                                        onSubmit={handleEdit}
-                                        className="space-y-3">
-                                        <input
-                                            type="text"
-                                            value={selectedUser.name}
-                                            onChange={e =>
-                                                setSelectedUser({
-                                                    ...selectedUser,
-                                                    name: e.target.value,
-                                                })
-                                            }
-                                            className="w-full border p-2 rounded"
-                                        />
-                                        <input
-                                            type="email"
-                                            value={selectedUser.email}
-                                            onChange={e =>
-                                                setSelectedUser({
-                                                    ...selectedUser,
-                                                    email: e.target.value,
-                                                })
-                                            }
-                                            className="w-full border p-2 rounded"
-                                        />
-                                        <div className="flex justify-end space-x-2">
-                                            <button
-                                                type="button"
-                                                onClick={() =>
-                                                    setModalType(null)
-                                                }
-                                                className="px-3 py-1 bg-gray-400 text-white rounded">
-                                                Batal
-                                            </button>
-                                            <button
-                                                type="submit"
-                                                className="px-3 py-1 bg-blue-600 text-white rounded">
-                                                Simpan
-                                            </button>
-                                        </div>
-                                    </form>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Modal Delete */}
-                        {modalType === 'delete' && selectedUser && (
-                            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-30">
-                                <div className="bg-white p-6 rounded shadow-md w-80">
-                                    <h2 className="text-lg font-bold mb-4">
-                                        Hapus User?
-                                    </h2>
-                                    <p>
-                                        Yakin mau hapus user:{' '}
-                                        <b>{selectedUser.name}</b>?
-                                    </p>
-                                    <div className="flex justify-end space-x-2 mt-4">
-                                        <button
-                                            onClick={() => setModalType(null)}
-                                            className="px-3 py-1 bg-gray-400 text-white rounded">
-                                            Batal
-                                        </button>
-                                        <button
-                                            onClick={() =>
-                                                handleDelete(selectedUser.id)
-                                            }
-                                            className="px-3 py-1 bg-red-600 text-white rounded">
-                                            Hapus
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </div>
-        </div>
+            {/* Modal Delete */}
+            <Modal
+                opened={modalType === 'delete'}
+                onClose={() => setModalType(null)}
+                title="⚠️ Hapus User?"
+                centered
+                radius="md"
+                size="sm"
+                overlayProps={{ blur: 3 }}>
+                <p>
+                    Yakin mau hapus user <b>{selectedUser?.name}</b> ?
+                </p>
+                <Group justify="flex-end" mt="md">
+                    <Button
+                        variant="default"
+                        onClick={() => setModalType(null)}>
+                        Batal
+                    </Button>
+                    <Button
+                        color="red"
+                        onClick={() => handleDelete(selectedUser.id)}>
+                        Hapus
+                    </Button>
+                </Group>
+            </Modal>
+        </Container>
     )
 }
+

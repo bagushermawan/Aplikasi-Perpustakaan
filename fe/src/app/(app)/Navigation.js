@@ -20,6 +20,7 @@ import {
     Divider,
     Paper,
     Modal,
+    CloseButton,
 } from '@mantine/core'
 import Link from 'next/link'
 import { useState, useEffect, useRef } from 'react'
@@ -173,7 +174,7 @@ const Navigation = ({ user }) => {
                 }}
                 closeOnClickOutside
                 closeOnEscape
-                centered
+                // centered
                 size="lg"
                 radius="md"
                 overlayProps={{ backgroundOpacity: 0.45, blur: 6 }}
@@ -199,6 +200,15 @@ const Navigation = ({ user }) => {
                         size="md"
                         radius="md"
                         leftSection={<FaSearch size={16} />}
+                        rightSection={
+                            <CloseButton
+                                aria-label="Clear input"
+                                onClick={() => setModalSearch('')}
+                                style={{
+                                    display: modalSearch ? undefined : 'none',
+                                }}
+                            />
+                        }
                     />
                     <div className="flex items-center justify-between mt-3 text-xs text-gray-500">
                         <span>Tekan Enter untuk cari, Esc untuk tutup</span>

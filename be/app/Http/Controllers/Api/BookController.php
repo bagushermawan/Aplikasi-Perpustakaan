@@ -26,21 +26,14 @@ class BookController extends Controller
         }
 
         if ($filter === 'bestseller') {
-            $limit = $request->input('limit', 8);
-
             $query->withSum('borrowedLoans as total_borrowed', 'quantity')
                 ->orderByDesc('total_borrowed');
-
-            return BookResource::collection($query->take($limit)->get());
         }
-
         if ($filter === 'promo') {
             $query->whereNotNull('discount')
                 ->where('discount', '>', 0);
         } elseif ($filter === 'newest') {
-            $limit = $request->input('limit', 8);
             $query->orderBy('created_at', 'desc');
-            return BookResource::collection($query->take($limit)->get());;
         } else {
             $query->orderBy('title', 'asc');
         }
@@ -62,6 +55,7 @@ class BookController extends Controller
             'author' => 'nullable|string|max:255',
             'stock'  => 'required|integer|min:0',
             'harga'  => 'required|numeric|min:1',
+            'discount'  => 'required|numeric|min:1',
             'cover'  => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
         ]);
 
@@ -87,12 +81,13 @@ class BookController extends Controller
             'author' => 'nullable|string|max:255',
             'stock'  => 'required|integer|min:0',
             'harga'  => 'required|numeric|min:1',
+            'discount'  => 'required|numeric|min:1',
             'cover'  => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
         ]);
 
         if ($request->hasFile('cover')) {
-            if ($book->cover && \Storage::exists('public/' . $book->cover)) {
-                \Storage::delete('public/' . $book->cover);
+            if ($book->cover && Storage::exists('public/' . $book->cover)) {
+                Storage::delete('public/' . $book->cover);
             }
             $data['cover'] = $request->file('cover')->store('covers', 'public');
         }
