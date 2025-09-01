@@ -15,6 +15,13 @@ class AuthenticatedSessionController extends Controller
      */
     public function store(LoginRequest $request): Response
     {
+
+        error_log('========= DEBUG LOGIN =========');
+        error_log('SESSION ALL: ' . json_encode(session()->all()));
+        error_log('HEADERS: ' . json_encode(request()->headers->all()));
+        error_log('X-XSRF-TOKEN HEADER: ' . request()->header('X-XSRF-TOKEN'));
+        error_log('INPUT _token: ' . request()->input('_token'));
+        error_log('========= END DEBUG =========');
         $request->authenticate();
 
         $request->session()->regenerate();
