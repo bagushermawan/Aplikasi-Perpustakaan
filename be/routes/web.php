@@ -12,3 +12,7 @@ require __DIR__.'/auth.php';
 Route::get('/foo', function () {
     Artisan::call('storage:link');
 });
+
+Route::post('/login', [AuthenticatedSessionController::class, 'store'])
+    ->middleware('guest')
+    ->name('login');
