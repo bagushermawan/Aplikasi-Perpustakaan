@@ -1,5 +1,5 @@
 import useSWR from 'swr'
-import axios, { primeCsrf } from '@/lib/axios'
+import axios from '@/lib/axios'
 import { useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 
@@ -22,8 +22,7 @@ export const useAuth = ({ middleware, redirectIfAuthenticated } = {}) => {
             }),
     )
 
-    // const csrf = () => axios.get('/sanctum/csrf-cookie')
-    const csrf = () => primeCsrf()
+    const csrf = () => axios.get('/sanctum/csrf-cookie')
 
     const register = async ({ setErrors, ...props }) => {
         await csrf()
