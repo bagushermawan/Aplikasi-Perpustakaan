@@ -135,4 +135,11 @@ class LoanController extends Controller
 
         return response()->json(['message' => 'Loan deleted successfully']);
     }
+
+    public function bulkDelete(Request $request)
+    {
+        $ids = $request->input('ids', []);
+        Loan::whereIn('id', $ids)->delete();
+        return response()->json(['message' => 'Bulk delete success']);
+    }
 }
