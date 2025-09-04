@@ -23,17 +23,17 @@ class LoanFactory extends Factory
 
         $book = Book::inRandomOrder()->first();
 
-        $qty = $book
-            ? $this->faker->numberBetween(1, max(1, $book->stock))
-            : 1;
+        if (!$book) {
+            return [];
+        }
 
         return [
             'user_id'     => User::inRandomOrder()->value('id'),
-            'book_id'     => $book?->id,
+            'book_id'     => $book->id,
             'borrowed_at' => $borrowedAt,
             'return_date' => $returnDate,
             'status'      => $this->faker->randomElement(['borrowed', 'returned']),
-            'quantity'    => $qty,
+            'quantity'    => $this->faker->numberBetween(1, $book->stock),
         ];
     }
 }
