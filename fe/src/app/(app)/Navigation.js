@@ -234,7 +234,7 @@ const Navigation = ({ user }) => {
                             <Text size="xs" c="dimmed">
                                 Dikirim dari{' '}
                                 <Text span fw={500}>
-                                    Xx
+                                    Sini
                                 </Text>
                             </Text>
                         </Group>

@@ -40,6 +40,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
 Route::prefix('perpus')->middleware(['auth:sanctum', 'role:admin|user'])->group(function () {
     Route::get('/users/all', [UserManagementController::class, 'all']);
+    Route::post('/users/bulk-delete', [UserManagementController::class, 'bulkDelete']);
+    Route::post('/books/bulk-delete', [BookController::class, 'bulkDelete']);
     Route::get('/books/all', [BookController::class, 'all']);
     Route::apiResource('users', UserManagementController::class);
     Route::apiResource('books', BookController::class);

@@ -102,4 +102,11 @@ class BookController extends Controller
         $book->delete();
         return response()->json(['message' => 'Book deleted']);
     }
+
+    public function bulkDelete(Request $request)
+    {
+        $ids = $request->input('ids', []);
+        Book::whereIn('id', $ids)->delete();
+        return response()->json(['message' => 'Bulk delete success']);
+    }
 }

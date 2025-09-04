@@ -18,9 +18,11 @@ import {
     Container,
     Title,
     ScrollArea,
+    Checkbox,
+    Center,
+    Loader,
 } from '@mantine/core'
 import { DateInput } from '@mantine/dates'
-import { useDisclosure } from '@mantine/hooks'
 
 const fetcher = url => api.get(url).then(res => res.data)
 
@@ -31,10 +33,23 @@ export default function AllBooksPage() {
     const [selectedLoan, setSelectedLoan] = useState(null)
     const [modalType, setModalType] = useState(null)
     const [user, setUser] = useState(null)
-    const searchRef = useRef(null)
 
     const [page, setPage] = useState(1)
     const perPage = 5
+
+    const [selectedIds, setSelectedIds] = useState([])
+
+    const toggleSelect = id => {
+        setSelectedIds(prev =>
+            prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id],
+        )
+    }
+    const toggleSelectAll = () => {
+        if (books.length === 0) return
+        const allIds = books.map(b => b.id)
+        if (selectedIds.length === allIds.length) setSelectedIds([])
+        else setSelectedIds(allIds)
+    }
 
     const {
         data: booksResp,
@@ -74,6 +89,20 @@ export default function AllBooksPage() {
     const books = booksResp?.data || []
     const meta = booksResp?.meta || {}
     const lastPage = meta.last_page || 1
+
+    const handleDeleteSelected = async () => {
+        if (selectedIds.length === 0) return
+        await toast.promise(
+            api.post(`/api/perpus/books/bulk-delete`, { ids: selectedIds }),
+            {
+                loading: '🗑 Menghapus banyak...',
+                success: `✅ ${selectedIds.length} Buku dihapus!`,
+                error: '❌ Gagal hapus',
+            },
+        )
+        setSelectedIds([])
+        mutate()
+    }
 
     // --- Handlers (Add/Edit/Delete/Borrow) sama seperti sebelumnya ---
     const handleAdd = async e => {
@@ -167,32 +196,45 @@ export default function AllBooksPage() {
 
     return (
         <Container size="xl" py="md">
-            <Paper shadow="sm" p="md" radius="md" withBorder>
-                <Group justify="space-between" mb="md">
-                    <Title order={3}>📚 Semua Buku</Title>
-                    {user?.role === 'admin' && (
-                        <Button
-                            color="teal"
-                            onClick={() => {
-                                setSelectedBook({
-                                    title: '',
-                                    author: '',
-                                    stock: 0,
-                                    harga: 0,
-                                    discount: 0,
-                                })
-                                setModalType('add')
-                            }}>
-                            + Tambah Buku
-                        </Button>
-                    )}
+            <Paper shadow="md" p="lg" radius="lg" withBorder>
+                <Group justify="space-between" mb="lg">
+                    <Title order={2}>📚 Semua Buku</Title>
+                    <Group>
+                        {user?.role === 'admin' && (
+                            <Button
+                                color="teal"
+                                onClick={() => {
+                                    setSelectedBook({
+                                        title: '',
+                                        author: '',
+                                        stock: 0,
+                                        harga: 0,
+                                        discount: 0,
+                                    })
+                                    setModalType('add')
+                                }}>
+                                + Tambah Buku
+                            </Button>
+                        )}
+                        {selectedIds.length > 0 && (
+                            <Button
+                                color="red"
+                                variant="outline"
+                                disabled={selectedIds.length === 0}
+                                onClick={handleDeleteSelected}>
+                                Delete Selected ({selectedIds.length})
+                            </Button>
+                        )}
+                    </Group>
                 </Group>
 
                 <TextInput
-                    placeholder="Cari Buku..."
+                    placeholder="🔍 Cari buku..."
                     value={search}
                     onChange={e => setSearch(e.target.value)}
                     mb="md"
+                    radius="md"
+                    size="md"
                 />
 
                 <ScrollArea>
@@ -205,6 +247,24 @@ export default function AllBooksPage() {
                         horizontalSpacing="md">
                         <Table.Thead>
                             <Table.Tr>
+                                <Table.Th>
+                                    <Center>
+                                        <Checkbox
+                                            ta="center"
+                                            checked={
+                                                books.length > 0 &&
+                                                selectedIds.length ===
+                                                    books.length
+                                            }
+                                            indeterminate={
+                                                selectedIds.length > 0 &&
+                                                selectedIds.length <
+                                                    books.length
+                                            }
+                                            onChange={toggleSelectAll}
+                                        />
+                                    </Center>
+                                </Table.Th>
                                 <Table.Th>No</Table.Th>
                                 <Table.Th>Judul</Table.Th>
                                 <Table.Th>Cover</Table.Th>
@@ -213,12 +273,25 @@ export default function AllBooksPage() {
                                 <Table.Th>Available</Table.Th>
                                 <Table.Th>Discount</Table.Th>
                                 <Table.Th>Harga</Table.Th>
-                                <Table.Th>Aksi</Table.Th>
+                                <Table.Th ta="center">Aksi</Table.Th>
                             </Table.Tr>
                         </Table.Thead>
                         <Table.Tbody>
                             {books.map((book, idx) => (
                                 <Table.Tr key={book.id}>
+                                    <Table.Td>
+                                        <Center>
+                                            <Checkbox
+                                                ta="center"
+                                                checked={selectedIds.includes(
+                                                    book.id,
+                                                )}
+                                                onChange={() =>
+                                                    toggleSelect(book.id)
+                                                }
+                                            />
+                                        </Center>
+                                    </Table.Td>
                                     <Table.Td>
                                         {(meta.from ??
                                             (page - 1) * perPage + 1) + idx}
@@ -286,7 +359,7 @@ export default function AllBooksPage() {
                                         </span>
                                     </Table.Td>
                                     <Table.Td>
-                                        <Group gap="xs">
+                                        <Group gap="xs" justify="center">
                                             <Button
                                                 size="xs"
                                                 variant="light"
@@ -319,22 +392,22 @@ export default function AllBooksPage() {
                 <Group mt="sm" justify="space-between">
                     <Button
                         variant="default"
-                        onClick={() => setPage(p => Math.max(1, p - 1))}
-                        disabled={page <= 1}>
+                        disabled={page <= 1}
+                        onClick={() => setPage(p => Math.max(1, p - 1))}>
                         Prev
                     </Button>
                     {isValidating ? (
-                        <span>⏳ Loading…</span>
+                        <Loader type='dots'/>
                     ) : (
                         <span>
-                            Hal {meta.current_page} dari {meta.last_page}{' '}
+                            Page {meta.current_page} dari {meta.last_page}{' '}
                             (Total: {meta.total})
                         </span>
                     )}
                     <Button
                         variant="default"
-                        onClick={() => setPage(p => Math.min(lastPage, p + 1))}
-                        disabled={page >= lastPage}>
+                        disabled={page >= lastPage}
+                        onClick={() => setPage(p => Math.min(lastPage, p + 1))}>
                         Next
                     </Button>
                 </Group>

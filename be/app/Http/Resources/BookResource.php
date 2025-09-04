@@ -27,13 +27,17 @@ class BookResource extends JsonResource
             'available' => $this->availableStock(),
             'cover'     => $cover,
             'discount'  => $this->discount !== null ? (int) $this->discount : 0,
-            'harga'     => $this->harga,
+            'harga'       => $this->harga,
+            'harga_formatted' => $this->harga_formatted,
+            'final_price' => $this->final_price,
+            'final_price_formatted' => $this->final_price_formatted,
             'created_at'     => $this->created_at->format('d/m/y - H:i'),
             'terjual'   => $this->when(
                 isset($this->total_borrowed),
                 $this->total_borrowed, // hasil withSum('loans as total_borrowed',...)
                 fn() => $this->loans()->where('status', 'borrowed')->sum('quantity')
             ),
+
         ];
     }
 }

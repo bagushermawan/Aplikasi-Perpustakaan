@@ -22,10 +22,12 @@ export default function Cart() {
     const { user } = useAuth({ middleware: 'auth' })
     const { mutate } = useSWR('/api/perpus/books')
 
-    const total = cart.reduce(
-        (sum, item) => sum + item.harga * item.quantity,
-        0,
-    )
+    // Hitung total semua item
+    const total = cart.reduce((sum, item) => {
+        const pricePerItem =
+            item.discount && item.discount > 0 ? item.final_price : item.harga
+        return sum + pricePerItem * item.quantity
+    }, 0)
 
     return (
         <Card
@@ -34,9 +36,9 @@ export default function Cart() {
             withBorder
             style={{
                 position: 'fixed',
-                top: rem(224), // seperti top-56 => kira2 224px
+                top: rem(224),
                 right: rem(12),
-                width: rem(320), // mirip w-80
+                width: rem(320),
                 zIndex: 40,
                 transform: showCart ? 'translateX(0)' : 'translateX(110%)',
                 opacity: showCart ? 1 : 0,
@@ -69,90 +71,139 @@ export default function Cart() {
                             Cart masih kosong...
                         </Text>
                     ) : (
-                        cart.map(item => (
-                            <Card
-                                key={item.id}
-                                withBorder
-                                radius="sm"
-                                p="xs"
-                                style={{ fontSize: '0.85rem' }}>
-                                <Group
-                                    justify="space-between"
-                                    align="flex-start">
-                                    <div>
-                                        <Text fw={500} size="sm">
-                                            {item.title}
-                                        </Text>
-                                        <Text size="xs" c="dimmed">
-                                            by {item.author}
-                                        </Text>
-                                    </div>
-                                    <ActionIcon
-                                        size="sm"
-                                        variant="subtle"
-                                        color="red"
-                                        onClick={() => removeFromCart(item.id)}>
-                                        <FaTrash size={12} />
-                                    </ActionIcon>
-                                </Group>
+                        cart.map(item => {
+                            const pricePerItem =
+                                item.discount && item.discount > 0
+                                    ? item.final_price
+                                    : item.harga
 
-                                <Group justify="space-between" mt={6}>
-                                    <Text fw={600} size="sm">
-                                        <NumberFormatter
-                                            value={item.harga * item.quantity}
-                                            thousandSeparator
-                                            prefix="Rp "
-                                        />
-                                    </Text>
-
-                                    <Group gap={4}>
+                            return (
+                                <Card
+                                    key={item.id}
+                                    withBorder
+                                    radius="sm"
+                                    p="xs"
+                                    style={{ fontSize: '0.85rem' }}>
+                                    <Group
+                                        justify="space-between"
+                                        align="flex-start">
+                                        <div>
+                                            <Text fw={500} size="sm">
+                                                {item.title}
+                                            </Text>
+                                            <Text size="xs" c="dimmed">
+                                                by {item.author}
+                                            </Text>
+                                        </div>
                                         <ActionIcon
                                             size="sm"
-                                            variant="light"
-                                            disabled={item.quantity <= 1}
+                                            variant="subtle"
+                                            color="red"
                                             onClick={() =>
-                                                setCart(
-                                                    cart.map(b =>
-                                                        b.id === item.id
-                                                            ? {
-                                                                  ...b,
-                                                                  quantity:
-                                                                      b.quantity -
-                                                                      1,
-                                                              }
-                                                            : b,
-                                                    ),
-                                                )
+                                                removeFromCart(item.id)
                                             }>
-                                            <FaMinus size={10} />
-                                        </ActionIcon>
-                                        <Text fw={500}>{item.quantity}</Text>
-                                        <ActionIcon
-                                            size="sm"
-                                            variant="light"
-                                            disabled={
-                                                item.quantity >= item.available
-                                            }
-                                            onClick={() =>
-                                                setCart(
-                                                    cart.map(b =>
-                                                        b.id === item.id
-                                                            ? {
-                                                                  ...b,
-                                                                  quantity:
-                                                                      b.quantity +
-                                                                      1,
-                                                              }
-                                                            : b,
-                                                    ),
-                                                )
-                                            }>
-                                            <FaPlus size={10} />
+                                            <FaTrash size={12} />
                                         </ActionIcon>
                                     </Group>
-                                </Group>
-                            </Card>
-                        ))
+
+                                    <Group justify="space-between" mt={6}>
+                                        <Stack gap={2}>
+                                            {item.discount &&
+                                            item.discount > 0 ? (
+                                                <>
+                                                    {/* Harga coret */}
+                                                    <Text
+                                                        size="xs"
+                                                        td="line-through"
+                                                        c="dimmed">
+                                                        <NumberFormatter
+                                                            value={
+                                                                item.harga_formatted
+                                                            }
+                                                            thousandSeparator
+                                                            prefix="Rp "
+                                                        />
+                                                    </Text>
+                                                    {/* Harga setelah diskon */}
+                                                    <Text
+                                                        fw={600}
+                                                        size="sm"
+                                                        c="green">
+                                                        <NumberFormatter
+                                                            value={
+                                                                item.final_price_formatted
+                                                            }
+                                                            thousandSeparator
+                                                            prefix="Rp "
+                                                        />
+                                                    </Text>
+                                                </>
+                                            ) : (
+                                                <Text fw={600} size="sm">
+                                                    <NumberFormatter
+                                                        value={
+                                                            item.harga_formatted
+                                                        }
+                                                        thousandSeparator
+                                                        prefix="Rp "
+                                                    />
+                                                </Text>
+                                            )}
+                                        </Stack>
+
+                                        {/* Tombol qty */}
+                                        <Group gap={4}>
+                                            <ActionIcon
+                                                size="sm"
+                                                variant="light"
+                                                disabled={item.quantity <= 1}
+                                                onClick={() =>
+                                                    setCart(
+                                                        cart.map(b =>
+                                                            b.id === item.id
+                                                                ? {
+                                                                      ...b,
+                                                                      quantity:
+                                                                          b.quantity -
+                                                                          1,
+                                                                  }
+                                                                : b,
+                                                        ),
+                                                    )
+                                                }>
+                                                <FaMinus size={10} />
+                                            </ActionIcon>
+                                            <Text fw={500}>
+                                                {item.quantity}
+                                            </Text>
+                                            <ActionIcon
+                                                size="sm"
+                                                variant="light"
+                                                disabled={
+                                                    item.quantity >=
+                                                    item.available
+                                                }
+                                                onClick={() =>
+                                                    setCart(
+                                                        cart.map(b =>
+                                                            b.id === item.id
+                                                                ? {
+                                                                      ...b,
+                                                                      quantity:
+                                                                          b.quantity +
+                                                                          1,
+                                                                  }
+                                                                : b,
+                                                        ),
+                                                    )
+                                                }>
+                                                <FaPlus size={10} />
+                                            </ActionIcon>
+                                        </Group>
+                                    </Group>
+                                </Card>
+                            )
+                        })
                     )}
                 </Stack>
             </ScrollArea>
@@ -182,4 +233,3 @@ export default function Cart() {
         </Card>
     )
 }
-

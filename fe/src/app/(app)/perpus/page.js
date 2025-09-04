@@ -1,9 +1,19 @@
 'use client'
 import { useState, useEffect } from 'react'
-import Sidebar from '@/components/Sidebar'
-import Header from '@/app/(app)/Header'
 import api from '@/lib/axios'
+import useSWR from 'swr'
 import { FaUsers, FaBook, FaClipboardList, FaBookReader } from 'react-icons/fa'
+import {
+    Card,
+    Group,
+    Text,
+    SimpleGrid,
+    Title,
+    Container,
+    Loader,
+} from '@mantine/core'
+
+const fetcher = url => api.get(url).then(res => res.data)
 
 const PerpusPage = () => {
     const [currentUser, setCurrentUser] = useState(null)
@@ -13,140 +23,208 @@ const PerpusPage = () => {
             .then(res => setCurrentUser(res.data))
             .catch(err => console.error(err))
     }, [])
-    const [stats, setStats] = useState({
-        users: 0,
-        books: 0,
-        loans: 0,
-        borrowedBooks: 0,
-    })
 
-    useEffect(() => {
-        const fetchStats = async () => {
-            try {
-                const usersRes = await api.get('/api/perpus/users')
-                const booksRes = await api.get('/api/perpus/books')
-                const loansRes = await api.get('/api/perpus/loans')
+    // pakai SWR untuk masing-masing data
+    const { data: usersResp, isValidating: loadingUsers } = useSWR(
+        '/api/perpus/users',
+        fetcher,
+        { revalidateOnFocus: false, dedupingInterval: 500 },
+    )
+    const { data: booksResp, isValidating: loadingBooks } = useSWR(
+        '/api/perpus/books',
+        fetcher,
+        { revalidateOnFocus: false, dedupingInterval: 500 },
+    )
+    const { data: loansResp, isValidating: loadingLoans } = useSWR(
+        '/api/perpus/loans',
+        fetcher,
+        { revalidateOnFocus: false, dedupingInterval: 500 },
+    )
+    const { data: borrowedResp, isValidating: loadingBorrowed } = useSWR(
+        '/api/perpus/loans?status=borrowed',
+        fetcher,
+        { revalidateOnFocus: false, dedupingInterval: 500 },
+    )
 
-                // total pakai meta.total
-                const totalUsers = usersRes.data.meta.total
-                const totalBooks = booksRes.data.meta.total
-                const totalLoans = loansRes.data.meta.total
+    const isLoading =
+        loadingUsers || loadingBooks || loadingLoans || loadingBorrowed
 
-                // hitung loans yg status borrowed dari item yg sudah difetch
-                // NOTE: ini hanya dari satu halaman. Kalau mau global, backend sebaiknya punya endpoint khusus.
-                const borrowedRes = await api.get(
-                    '/api/perpus/loans?status=borrowed',
-                )
-                const borrowedBooksCount = borrowedRes.data.meta.total
-
-                setStats({
-                    users: totalUsers,
-                    books: totalBooks,
-                    loans: totalLoans,
-                    borrowedBooks: borrowedBooksCount,
-                })
-            } catch (error) {
-                console.error('Failed to fetch stats', error)
-            }
-        }
-
-        fetchStats()
-    }, [])
+    const stats = {
+        users: usersResp?.meta?.total ?? 0,
+        books: booksResp?.meta?.total ?? 0,
+        loans: loansResp?.meta?.total ?? 0,
+        borrowedBooks: borrowedResp?.meta?.total ?? 0,
+    }
 
     return (
-        <>
-            {/* <Header title="Perpustakaan" /> */}
-            <div className="py-12 flex">
-                {/* Sidebar */}
-                {/* <Sidebar /> */}
+        <Container size="lg" py="xl">
+            <Card shadow="sm" p="lg" radius="md" withBorder>
+                <Title order={2} mb="md">
+                    Dashboard Perpustakaan
+                </Title>
 
-                {/* Main Content */}
-                <div className="flex-1 max-w-7xl mx-auto sm:px-6 lg:px-8">
-                    <div className="p-6 bg-white rounded-lg">
-                        <h1 className="text-2xl font-bold mb-6">
-                            Dashboard Perpustakaan
-                        </h1>
-
-                        <div className="p-2 grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:[grid-template-columns:repeat(auto-fit,minmax(200px,1fr))]">
-                            {/* Total Users */}
-                            {currentUser?.role === 'admin' && (
-                                <div className="bg-blue-500 text-white rounded-lg p-6 shadow flex items-center">
-                                    <FaUsers className="text-4xl mr-4" />
-                                    <div>
-                                        <h2 className="text-lg font-semibold">
-                                            Total Users
-                                        </h2>
-                                        <p className="mt-2 text-3xl font-bold">
-                                            {stats.users}
-                                        </p>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Total Books */}
-                            <div className="bg-green-500 text-white rounded-lg p-6 shadow flex items-center">
-                                <FaBook className="text-4xl mr-4" />
+                <SimpleGrid
+                    cols={{ base: 1, sm: 2, md: 3, lg: 4 }}
+                    spacing="lg"
+                    mb="lg">
+                    {/* Total Users */}
+                    {currentUser?.role === 'admin' && (
+                        <Card
+                            shadow="sm"
+                            radius="md"
+                            p="md"
+                            style={{
+                                backgroundColor: '#3b82f6',
+                                transition: 'background-color 0.3s',
+                                cursor: 'pointer',
+                            }}
+                            onMouseEnter={e =>
+                                (e.currentTarget.style.backgroundColor =
+                                    '#2563eb')
+                            }
+                            onMouseLeave={e =>
+                                (e.currentTarget.style.backgroundColor =
+                                    '#3b82f6')
+                            }>
+                            <Group align="center">
+                                <FaUsers size={36} color="white" />
                                 <div>
-                                    <h2 className="text-lg font-semibold">
-                                        Total Books
-                                    </h2>
-                                    <p className="mt-2 text-3xl font-bold">
-                                        {stats.books}
-                                    </p>
+                                    <Text fw={500} c="white">
+                                        Total Users
+                                    </Text>
+                                    <Text size="xl" fw={700} c="white">
+                                        {loadingUsers ? (
+                                            <Loader size="xs" color="white" />
+                                        ) : (
+                                            stats.users
+                                        )}
+                                    </Text>
                                 </div>
-                            </div>
+                            </Group>
+                        </Card>
+                    )}
 
-                            {/* Total Loans */}
-                            <div className="bg-yellow-500 text-white rounded-lg p-6 shadow flex items-center">
-                                <FaClipboardList className="text-4xl mr-4" />
-                                <div>
-                                    <h2 className="text-lg font-semibold">
-                                        Total Loans
-                                    </h2>
-                                    <p className="mt-2 text-3xl font-bold">
-                                        {stats.loans}
-                                    </p>
-                                </div>
+                    {/* Total Books */}
+                    <Card
+                        shadow="sm"
+                        radius="md"
+                        p="md"
+                        style={{
+                            backgroundColor: '#22c55e',
+                            transition: 'background-color 0.3s',
+                            cursor: 'pointer',
+                        }}
+                        onMouseEnter={e =>
+                            (e.currentTarget.style.backgroundColor = '#16a34a')
+                        }
+                        onMouseLeave={e =>
+                            (e.currentTarget.style.backgroundColor = '#22c55e')
+                        }>
+                        <Group align="center">
+                            <FaBook size={36} color="white" />
+                            <div>
+                                <Text fw={500} c="white">
+                                    Total Books
+                                </Text>
+                                <Text size="xl" fw={700} c="white">
+                                    {loadingBooks ? (
+                                        <Loader size="xs" color="white" />
+                                    ) : (
+                                        stats.books
+                                    )}
+                                </Text>
                             </div>
+                        </Group>
+                    </Card>
 
-                            {/* Borrowed Books */}
-                            <div className="bg-red-500 text-white rounded-lg p-6 shadow flex items-center">
-                                <FaBookReader className="text-4xl mr-4" />
-                                <div>
-                                    <h2 className="text-lg font-semibold">
-                                        Currently Borrowed
-                                    </h2>
-                                    <p className="mt-2 text-3xl font-bold">
-                                        {stats.borrowedBooks}
-                                    </p>
-                                </div>
+                    {/* Total Loans */}
+                    <Card
+                        shadow="sm"
+                        radius="md"
+                        p="md"
+                        style={{
+                            backgroundColor: '#eab308',
+                            transition: 'background-color 0.3s',
+                            cursor: 'pointer',
+                        }}
+                        onMouseEnter={e =>
+                            (e.currentTarget.style.backgroundColor = '#ca8a04')
+                        }
+                        onMouseLeave={e =>
+                            (e.currentTarget.style.backgroundColor = '#eab308')
+                        }>
+                        <Group align="center">
+                            <FaClipboardList size={36} color="white" />
+                            <div>
+                                <Text fw={500} c="white">
+                                    Total Loans
+                                </Text>
+                                <Text size="xl" fw={700} c="white">
+                                    {loadingLoans ? (
+                                        <Loader size="xs" color="white" />
+                                    ) : (
+                                        stats.loans
+                                    )}
+                                </Text>
                             </div>
-                        </div>
-                    </div>
+                        </Group>
+                    </Card>
 
-                    {/* Optional: welcome message */}
-                    <div className="mt-8 bg-white p-6 rounded-lg shadow">
-                        <h2 className="text-xl font-bold mb-2">
-                            Selamat Datang!
-                        </h2>
-                        {currentUser?.role === 'admin' && (
-                            <p>
-                                Ini adalah dashboard perpustakaan. Kamu bisa
-                                melihat jumlah user, jumlah buku, pinjaman
-                                aktif, dan statistik lainnya di sini.
-                            </p>
-                        )}
-                        {currentUser?.role === 'user' && (
-                            <p>
-                                Ini adalah dashboard perpustakaan. Kamu bisa
-                                melihat jumlah buku, pinjaman aktif, dan
-                                statistik lainnya di sini.
-                            </p>
-                        )}
-                    </div>
-                </div>
-            </div>
-        </>
+                    {/* Borrowed Books */}
+                    <Card
+                        shadow="sm"
+                        radius="md"
+                        p="md"
+                        style={{
+                            backgroundColor: '#ef4444',
+                            transition: 'background-color 0.3s',
+                            cursor: 'pointer',
+                        }}
+                        onMouseEnter={e =>
+                            (e.currentTarget.style.backgroundColor = '#dc2626')
+                        }
+                        onMouseLeave={e =>
+                            (e.currentTarget.style.backgroundColor = '#ef4444')
+                        }>
+                        <Group align="center">
+                            <FaBookReader size={36} color="white" />
+                            <div>
+                                <Text fw={500} c="white">
+                                    Currently Borrowed
+                                </Text>
+                                <Text size="xl" fw={700} c="white">
+                                    {loadingBorrowed ? (
+                                        <Loader size="xs" color="white" />
+                                    ) : (
+                                        stats.borrowedBooks
+                                    )}
+                                </Text>
+                            </div>
+                        </Group>
+                    </Card>
+                </SimpleGrid>
+            </Card>
+
+            <Card mt="lg" shadow="sm" p="lg" radius="md" withBorder>
+                <Title order={3} mb="sm">
+                    Selamat Datang!
+                </Title>
+                {currentUser?.role === 'admin' && (
+                    <Text>
+                        Ini adalah dashboard perpustakaan. Kamu bisa melihat
+                        jumlah user, jumlah buku, pinjaman aktif, dan statistik
+                        lainnya di sini.
+                    </Text>
+                )}
+                {currentUser?.role === 'user' && (
+                    <Text>
+                        Ini adalah dashboard perpustakaan. Kamu bisa melihat
+                        jumlah buku, pinjaman aktif, dan statistik lainnya di
+                        sini.
+                    </Text>
+                )}
+            </Card>
+        </Container>
     )
 }
 

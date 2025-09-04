@@ -82,44 +82,33 @@ export default function BookList({ filterType }) {
                             {books.map(book => (
                                 <div
                                     key={book.id}
-                                    className="relative border rounded-lg shadow p-4 flex flex-col overflow-hidden">
-                                    {/* Ribbon: Promo / Discount */}
-                                    {pathname === '/dashboard' && (
-                                        <>
-                                            {book.discount > 0 && (
-                                                <div className="absolute -top-5 left-0 w-16 h-16">
-                                                    <div className="absolute transform -rotate-45 bg-red-600 text-center text-white font-medium py-1 left-[-35px] top-[32px] w-[120px]">
-                                                        PROMO
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {book.terjual > 5 && (
-                                                <div className="absolute top-3 left-0 w-16 h-18">
-                                                    <div className="absolute transform -rotate-45 bg-blue-600 text-center text-white font-medium py-1 left-[-37px] top-[20px] w-[175px]">
-                                                        BEST SELLER
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </>
+                                    className="relative border rounded-xl shadow-md p-4 flex flex-col bg-white hover:shadow-xl transition duration-200 overflow-hidden">
+                                    {/* Promo Pill */}
+                                    {book.discount > 0 && (
+                                        <span className="absolute top-3 left-3 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full shadow">
+                                            -{book.discount}%
+                                        </span>
                                     )}
+
+                                    {/* Cover */}
                                     <div className="flex-1 mb-3">
                                         {book.cover ? (
                                             <img
                                                 src={book.cover}
                                                 alt={book.title}
-                                                className="w-full h-48 object-cover rounded"
+                                                className="w-full h-48 object-cover rounded-md transition-transform duration-200 hover:scale-105"
                                             />
                                         ) : (
-                                            <div className="w-full h-48 bg-gray-200 flex items-center justify-center rounded">
-                                                <span className="text-gray-500">
+                                            <div className="w-full h-48 bg-gray-100 flex items-center justify-center rounded">
+                                                <span className="text-gray-400">
                                                     No Cover
                                                 </span>
                                             </div>
                                         )}
                                     </div>
 
-                                    <h3 className="text-lg font-semibold">
+                                    {/* Title */}
+                                    <h3 className="text-base font-semibold line-clamp-2">
                                         {(() => {
                                             const title = book.title
                                             const searchTerm = debouncedSearch
@@ -147,7 +136,8 @@ export default function BookList({ filterType }) {
                                         })()}
                                     </h3>
 
-                                    <h3 className="text-sm text-gray-600">
+                                    {/* Author */}
+                                    <p className="text-sm text-gray-500 italic mb-2">
                                         {(() => {
                                             const author = book.author
                                             const searchTerm = debouncedSearch
@@ -173,27 +163,23 @@ export default function BookList({ filterType }) {
                                                 ),
                                             )
                                         })()}
-                                    </h3>
+                                    </p>
 
-                                    <p className="text-sm mt-2 text-gray-600">
+                                    {/* Info Tambahan */}
+                                    <p className="text-xs text-gray-500">
                                         {filterType === 'newest' ? (
                                             <>Diposting: {book.created_at}</>
-                                        ) : (
-                                            <></>
-                                        )}
-                                    </p>
-                                    <p className="text-sm mt-2">
-                                        {filterType === 'bestseller' ? (
+                                        ) : filterType === 'bestseller' ? (
                                             <>
                                                 Terjual:{' '}
-                                                <span className="font-bold">
+                                                <span className="font-semibold">
                                                     {book.terjual}
                                                 </span>
                                             </>
                                         ) : (
                                             <>
                                                 Stock:{' '}
-                                                <span className="font-bold">
+                                                <span className="font-semibold">
                                                     {book.available}
                                                 </span>{' '}
                                                 / {book.stock}
@@ -201,34 +187,37 @@ export default function BookList({ filterType }) {
                                         )}
                                     </p>
 
-                                    <p className="text-sm mt-2">
-                                        Harga:{' '}
-                                        <span className="font-bold">
-                                            {new Intl.NumberFormat('id-ID', {
-                                                style: 'currency',
-                                                currency: 'IDR',
-                                            }).format(book.harga)}
-                                        </span>
-                                    </p>
+                                    {/* Harga */}
+                                    <div className="mt-2">
+                                        {book.discount > 0 ? (
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <span className="line-through text-gray-400 text-sm">
+                                                    Rp {book.harga_formatted}
+                                                </span>
+                                                <span className="font-bold text-green-600 text-lg">
+                                                    Rp{' '}
+                                                    {book.final_price_formatted}
+                                                </span>
+                                            </div>
+                                        ) : (
+                                            <span className="font-bold text-lg text-gray-800">
+                                                Rp {book.harga_formatted}
+                                            </span>
+                                        )}
+                                    </div>
 
-                                    {book.discount > 0 && (
-                                        <p className="text-sm text-red-600 font-bold">
-                                            Diskon: {book.discount}%
-                                        </p>
-                                    )}
-
-                                    {/* Button */}
+                                    {/* Tombol */}
                                     <div className="mt-3">
                                         {book.available > 0 ? (
                                             <button
                                                 onClick={() => addToCart(book)}
-                                                className="w-full px-2 py-1 bg-blue-500 hover:bg-blue-600 text-white text-sm rounded">
-                                                Tambah ke Cart
+                                                className="w-full py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm font-semibold rounded-lg shadow transition">
+                                                + Keranjang
                                             </button>
                                         ) : (
                                             <button
                                                 disabled
-                                                className="w-full px-2 py-1 bg-gray-400 text-white text-sm rounded cursor-not-allowed">
+                                                className="w-full py-2 bg-gray-300 text-gray-600 text-sm font-semibold rounded-lg cursor-not-allowed">
                                                 Habis
                                             </button>
                                         )}

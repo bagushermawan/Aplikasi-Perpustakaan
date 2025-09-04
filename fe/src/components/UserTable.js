@@ -15,6 +15,9 @@ import {
     Title,
     ScrollArea,
     Stack,
+    Checkbox,
+    Center,
+    Loader,
 } from '@mantine/core'
 
 const fetcher = url => api.get(url).then(res => res.data)
@@ -24,9 +27,17 @@ export default function AllUsersPage() {
     const [debouncedSearch, setDebouncedSearch] = useState('')
     const [selectedUser, setSelectedUser] = useState(null)
     const [modalType, setModalType] = useState(null)
+    const [currentUser, setCurrentUser] = useState(null)
+    const [selectedIds, setSelectedIds] = useState([])
 
     const [page, setPage] = useState(1)
     const perPage = 5
+
+    useEffect(() => {
+        api.get('/api/auth/user')
+            .then(res => setCurrentUser(res.data))
+            .catch(err => console.error('Gagal ambil user login', err))
+    }, [])
 
     const {
         data: usersResp,
@@ -46,6 +57,13 @@ export default function AllUsersPage() {
             dedupingInterval: 300,
         },
     )
+
+    const canDelete = u => {
+        if (!currentUser) return false
+        if (u.id === currentUser.id) return false // tidak boleh hapus diri sendiri
+        // if (currentUser.role === 'admin' && u.role === 'admin') return false // admin tidak boleh hapus admin lain
+        return true
+    }
 
     useEffect(() => {
         const t = setTimeout(() => setDebouncedSearch(search), 300)
@@ -97,49 +115,140 @@ export default function AllUsersPage() {
         setModalType(null)
     }
 
+    const toggleSelect = id => {
+        setSelectedIds(prev =>
+            prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id],
+        )
+    }
+
+    const toggleSelectAll = () => {
+        const deletableIds = users.filter(u => canDelete(u)).map(u => u.id)
+
+        if (selectedIds.length === deletableIds.length) {
+            setSelectedIds([])
+        } else {
+            setSelectedIds(deletableIds)
+        }
+    }
+
+    const handleDeleteSelected = async () => {
+        if (selectedIds.length === 0) return
+        await toast.promise(
+            api.post(`/api/perpus/users/bulk-delete`, { ids: selectedIds }),
+            {
+                loading: '⏳ Menghapus user-user...',
+                success: '🗑️ User dipilih dihapus!',
+                error: '❌ Gagal hapus user',
+            },
+        )
+        setSelectedIds([])
+        mutate()
+    }
+
     return (
-        <Container size="lg" py="md">
-            <Paper shadow="sm" p="md" radius="md" withBorder>
-                <Group justify="space-between" mb="md">
-                    <Title order={3}>👥 Semua User</Title>
-                    <Button
-                        color="teal"
-                        onClick={() => {
-                            setSelectedUser({
-                                name: '',
-                                email: '',
-                                password: '',
-                            })
-                            setModalType('add')
-                        }}>
-                        + Tambah User
-                    </Button>
+        <Container size="xl" py="md">
+            <Paper shadow="md" p="lg" radius="lg" withBorder>
+                {/* Header */}
+                <Group justify="space-between" mb="lg">
+                    <Title order={2}>👥 Semua User</Title>
+                    <Group gap="sm">
+                        <Button
+                            leftSection="➕"
+                            color="teal"
+                            onClick={() => {
+                                setSelectedUser({
+                                    name: '',
+                                    email: '',
+                                    password: '',
+                                })
+                                setModalType('add')
+                            }}>
+                            Tambah
+                        </Button>
+                        <Button
+                            leftSection="🗑️"
+                            color="red"
+                            // variant="outline"
+                            disabled={selectedIds.length === 0}
+                            onClick={handleDeleteSelected}>
+                            Hapus Terpilih ({selectedIds.length})
+                        </Button>
+                    </Group>
                 </Group>
 
+                {/* Search */}
                 <TextInput
-                    placeholder="Cari user..."
+                    placeholder="🔍 Cari user..."
                     value={search}
                     onChange={e => setSearch(e.target.value)}
                     mb="md"
+                    radius="md"
+                    size="md"
                 />
 
+                {/* Table */}
                 <ScrollArea>
                     <Table
-                        striped
                         highlightOnHover
+                        striped
                         withTableBorder
-                        withColumnBorders>
+                        withColumnBorders
+                        verticalSpacing="sm"
+                        horizontalSpacing="md">
                         <Table.Thead>
                             <Table.Tr>
+                                <Table.Th>
+                                    <Center>
+                                        <Checkbox
+                                            checked={
+                                                users.length > 0 &&
+                                                selectedIds.length ===
+                                                    users.filter(canDelete)
+                                                        .length
+                                            }
+                                            indeterminate={
+                                                selectedIds.length > 0 &&
+                                                selectedIds.length <
+                                                    users.filter(canDelete)
+                                                        .length
+                                            }
+                                            onChange={toggleSelectAll}
+                                        />
+                                    </Center>
+                                </Table.Th>
                                 <Table.Th>No</Table.Th>
                                 <Table.Th>Nama</Table.Th>
                                 <Table.Th>Email</Table.Th>
-                                <Table.Th>Aksi</Table.Th>
+                                <Table.Th>
+                                    <Center>Aksi</Center>
+                                </Table.Th>
                             </Table.Tr>
                         </Table.Thead>
                         <Table.Tbody>
                             {users.map((u, idx) => (
                                 <Table.Tr key={u.id}>
+                                    <Table.Td>
+                                        <Center>
+                                            {canDelete(u) ? (
+                                                <Checkbox
+                                                    checked={selectedIds.includes(
+                                                        u.id,
+                                                    )}
+                                                    onChange={() =>
+                                                        toggleSelect(u.id)
+                                                    }
+                                                />
+                                            ) : (
+                                                <Checkbox
+                                                    disabled
+                                                    style={{
+                                                        cursor: 'not-allowed',
+                                                        opacity: 0.5,
+                                                    }}
+                                                />
+                                            )}
+                                        </Center>
+                                    </Table.Td>
                                     <Table.Td>
                                         {(meta.from ??
                                             (page - 1) * perPage + 1) + idx}
@@ -147,27 +256,29 @@ export default function AllUsersPage() {
                                     <Table.Td fw={500}>{u.name}</Table.Td>
                                     <Table.Td>{u.email}</Table.Td>
                                     <Table.Td>
-                                        <Group gap="xs">
+                                        <Group gap="xs" justify="center">
                                             <Button
                                                 size="xs"
-                                                color="blue"
                                                 variant="light"
+                                                color="blue"
                                                 onClick={() => {
                                                     setSelectedUser(u)
                                                     setModalType('edit')
                                                 }}>
                                                 Edit
                                             </Button>
-                                            <Button
-                                                size="xs"
-                                                color="red"
-                                                variant="light"
-                                                onClick={() => {
-                                                    setSelectedUser(u)
-                                                    setModalType('delete')
-                                                }}>
-                                                Delete
-                                            </Button>
+                                            {canDelete(u) && (
+                                                <Button
+                                                    size="xs"
+                                                    variant="light"
+                                                    color="red"
+                                                    onClick={() => {
+                                                        setSelectedUser(u)
+                                                        setModalType('delete')
+                                                    }}>
+                                                    Hapus
+                                                </Button>
+                                            )}
                                         </Group>
                                     </Table.Td>
                                 </Table.Tr>
@@ -177,23 +288,25 @@ export default function AllUsersPage() {
                 </ScrollArea>
 
                 {/* Pagination */}
-                <Group mt="md" justify="space-between">
+                <Group mt="lg" justify="space-between">
                     <Button
                         variant="default"
+                        size="sm"
                         onClick={() => setPage(p => Math.max(1, p - 1))}
                         disabled={page <= 1}>
                         Prev
                     </Button>
                     {isValidating ? (
-                        <span>⏳ Memuat…</span>
+                        <Loader type='dots'/>
                     ) : (
                         <span>
-                            Page {meta.current_page} dari {meta.last_page}{' '}
-                            (Total: {meta.total})
+                            Page <b>{meta.current_page}</b> dari{' '}
+                            <b>{meta.last_page}</b> (Total: {meta.total} user)
                         </span>
                     )}
                     <Button
                         variant="default"
+                        size="sm"
                         onClick={() => setPage(p => Math.min(lastPage, p + 1))}
                         disabled={page >= lastPage}>
                         Next
@@ -207,12 +320,13 @@ export default function AllUsersPage() {
                 onClose={() => setModalType(null)}
                 title="➕ Tambah User"
                 centered
-                radius="md"
-                overlayProps={{ blur: 3 }}>
+                radius="lg"
+                overlayProps={{ blur: 4 }}>
                 <form onSubmit={handleAdd}>
                     <Stack>
                         <TextInput
                             label="Nama"
+                            placeholder="Masukkan nama"
                             value={selectedUser?.name || ''}
                             onChange={e =>
                                 setSelectedUser({
@@ -225,6 +339,7 @@ export default function AllUsersPage() {
                         <TextInput
                             label="Email"
                             type="email"
+                            placeholder="Masukkan email"
                             value={selectedUser?.email || ''}
                             onChange={e =>
                                 setSelectedUser({
@@ -237,6 +352,7 @@ export default function AllUsersPage() {
                         <TextInput
                             label="Password"
                             type="password"
+                            placeholder="Minimal 6 karakter"
                             value={selectedUser?.password || ''}
                             onChange={e =>
                                 setSelectedUser({
@@ -266,8 +382,8 @@ export default function AllUsersPage() {
                 onClose={() => setModalType(null)}
                 title="✏️ Edit User"
                 centered
-                radius="md"
-                overlayProps={{ blur: 3 }}>
+                radius="lg"
+                overlayProps={{ blur: 4 }}>
                 <form onSubmit={handleEdit}>
                     <Stack>
                         <TextInput
@@ -313,26 +429,27 @@ export default function AllUsersPage() {
                 onClose={() => setModalType(null)}
                 title="⚠️ Hapus User?"
                 centered
-                radius="md"
+                radius="lg"
                 size="sm"
-                overlayProps={{ blur: 3 }}>
-                <p>
-                    Yakin mau hapus user <b>{selectedUser?.name}</b> ?
-                </p>
-                <Group justify="flex-end" mt="md">
-                    <Button
-                        variant="default"
-                        onClick={() => setModalType(null)}>
-                        Batal
-                    </Button>
-                    <Button
-                        color="red"
-                        onClick={() => handleDelete(selectedUser.id)}>
-                        Hapus
-                    </Button>
-                </Group>
+                overlayProps={{ blur: 4 }}>
+                <Stack gap="xs">
+                    <p>
+                        Yakin mau hapus user <b>{selectedUser?.name}</b>?
+                    </p>
+                    <Group justify="flex-end">
+                        <Button
+                            variant="default"
+                            onClick={() => setModalType(null)}>
+                            Batal
+                        </Button>
+                        <Button
+                            color="red"
+                            onClick={() => handleDelete(selectedUser.id)}>
+                            Hapus
+                        </Button>
+                    </Group>
+                </Stack>
             </Modal>
         </Container>
     )
 }
-
