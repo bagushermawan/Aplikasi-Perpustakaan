@@ -10,6 +10,6 @@ class LoanSeeder extends Seeder
 {
     public function run(): void
     {
-        Loan::factory()->count(25)->create();
+        Loan::factory()->count(258)->create();
     }
 }

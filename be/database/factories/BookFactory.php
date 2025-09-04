@@ -19,7 +19,7 @@ class BookFactory extends Factory
         return [
             'title'    => $this->faker->sentence(3),
             'author'   => $this->faker->name,
-            'stock'    => $this->faker->numberBetween(1, 10),
+            'stock'    => $this->faker->numberBetween(5, 120),
             'cover'    => "https://picsum.photos/200/300?random=" . $this->faker->unique()->numberBetween(1, 1000),
             'harga'   => $this->faker->numberBetween($min = 1500, $max = 100000),
             'discount' => $this->faker->boolean(65)   // 70% kemungkinan ada diskon
