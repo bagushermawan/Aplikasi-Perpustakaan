@@ -88,7 +88,10 @@ export default function Cart() {
                                         justify="space-between"
                                         align="flex-start">
                                         <div>
-                                            <Text fw={500} size="sm">
+                                            <Text
+                                                fw={500}
+                                                size="sm"
+                                                lineClamp={1}>
                                                 {item.title}
                                             </Text>
                                             <Text size="xs" c="dimmed">
