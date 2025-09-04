@@ -111,29 +111,31 @@ export default function Cart() {
                                             {item.discount &&
                                             item.discount > 0 ? (
                                                 <>
-                                                    {/* Harga coret */}
+                                                    {/* Harga coret (per item) */}
                                                     <Text
                                                         size="xs"
                                                         td="line-through"
                                                         c="dimmed">
                                                         <NumberFormatter
-                                                            value={
-                                                                item.harga_formatted
-                                                            }
-                                                            thousandSeparator
+                                                            value={item.harga}
+                                                            thousandSeparator="."
+                                                            decimalSeparator=","
                                                             prefix="Rp "
                                                         />
                                                     </Text>
-                                                    {/* Harga setelah diskon */}
+
+                                                    {/* Harga setelah diskon (x quantity) */}
                                                     <Text
                                                         fw={600}
                                                         size="sm"
                                                         c="green">
                                                         <NumberFormatter
                                                             value={
-                                                                item.final_price_formatted
+                                                                item.final_price *
+                                                                item.quantity
                                                             }
-                                                            thousandSeparator
+                                                            thousandSeparator="."
+                                                            decimalSeparator=","
                                                             prefix="Rp "
                                                         />
                                                     </Text>
@@ -142,9 +144,11 @@ export default function Cart() {
                                                 <Text fw={600} size="sm">
                                                     <NumberFormatter
                                                         value={
-                                                            item.harga_formatted
+                                                            item.harga *
+                                                            item.quantity
                                                         }
-                                                        thousandSeparator
+                                                        thousandSeparator="."
+                                                        decimalSeparator=","
                                                         prefix="Rp "
                                                     />
                                                 </Text>
