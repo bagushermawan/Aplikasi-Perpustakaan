@@ -1,6 +1,7 @@
 'use client'
 import { useCart } from '../app/(app)/context/CartContext'
 import { useAuth } from '@/hooks/auth'
+import { useMediaQuery } from '@mantine/hooks'
 import useSWR from 'swr'
 import {
     Card,
@@ -15,12 +16,14 @@ import {
     rem,
 } from '@mantine/core'
 import { FaTrash, FaMinus, FaPlus, FaShoppingCart } from 'react-icons/fa'
+import { FiTrash2, FiMinimize2 } from 'react-icons/fi'
 
 export default function Cart() {
     const { cart, setCart, removeFromCart, handleCheckout, showCart } =
         useCart()
     const { user } = useAuth({ middleware: 'auth' })
     const { mutate } = useSWR('/api/perpus/books')
+    const { setShowCart } = useCart()
 
     // Hitung total semua item
     const total = cart.reduce((sum, item) => {
@@ -28,37 +31,57 @@ export default function Cart() {
             item.discount && item.discount > 0 ? item.final_price : item.harga
         return sum + pricePerItem * item.quantity
     }, 0)
+    const isMobile = useMediaQuery('(max-width: 768px)')
 
     return (
         <Card
-            shadow="lg"
+            shadow="xl"
             radius="md"
             withBorder
             style={{
                 position: 'fixed',
-                top: rem(224),
-                right: rem(12),
-                width: rem(320),
+                bottom: isMobile ? rem(0) : 'auto',
+                top: isMobile ? 'auto' : rem(224),
+                right: isMobile ? 'auto' : rem(12), // 👉 jangan 0 di mobile
+                left: isMobile ? '50%' : 'auto', // 👉 taruh titik anchor di tengah layar
+                width: isMobile ? '90%' : rem(320),
+                height: isMobile ? '60%' : 'auto',
                 zIndex: 40,
-                transform: showCart ? 'translateX(0)' : 'translateX(110%)',
+
+                transform: showCart
+                    ? isMobile
+                        ? 'translate(-50%, 0)' // 👉 geser balik biar benar² center
+                        : 'translateX(0)'
+                    : isMobile
+                      ? 'translate(-50%, 110%)' // 👉 pas hidden tetap relatif tengah
+                      : 'translateX(110%)',
+
                 opacity: showCart ? 1 : 0,
-                transition: 'all 0.3s ease',
+                transition: 'all 0.5s ease',
             }}>
             {/* Header */}
             <Group justify="space-between" mb="sm">
                 <Group gap="xs">
                     <FaShoppingCart />
-                    <Text fw={600} c="blue.9">
+                    <Text fw={600}>
                         Cart
                     </Text>
                 </Group>
-                <Button
-                    variant="subtle"
-                    color="red"
-                    size="xs"
-                    onClick={() => setCart([])}>
-                    Clear
-                </Button>
+
+                <Group gap="xs">
+                    <ActionIcon
+                        variant="subtle"
+                        color="red"
+                        onClick={() => setCart([])}>
+                        <FiTrash2 size={16} />
+                    </ActionIcon>
+                    <ActionIcon
+                        variant="subtle"
+                        color="gray"
+                        onClick={() => setShowCart(false)}>
+                        <FiMinimize2 size={16} />
+                    </ActionIcon>
+                </Group>
             </Group>
 
             <Divider mb="sm" />

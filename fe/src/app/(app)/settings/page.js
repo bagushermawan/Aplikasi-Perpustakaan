@@ -88,7 +88,7 @@ export default function SettingPage() {
         <Container size="sm" py="xl">
             <Paper withBorder shadow="sm" p="xl" radius="md">
                 <Group justify="space-between" mb="md">
-                    <Title order={3}>My Profile</Title>
+                    <Title order={3}>👤 My Profile</Title>
                     <Button
                         variant="subtle"
                         size="xs"
@@ -197,4 +197,3 @@ export default function SettingPage() {
         </Container>
     )
 }
-

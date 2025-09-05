@@ -21,7 +21,9 @@ import {
     Paper,
     Modal,
     CloseButton,
+    useMantineTheme,
 } from '@mantine/core'
+import { useMediaQuery } from '@mantine/hooks'
 import Link from 'next/link'
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '@/hooks/auth'
@@ -52,9 +54,10 @@ import api from '@/lib/axios'
 const SEARCH_MODAL_ID = 'search-modal'
 
 const Navigation = ({ user }) => {
+    const isMobile = useMediaQuery('(max-width: 770px)')
     const { cart, showCart, setShowCart } = useCart()
     const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0)
-
+    const theme = useMantineTheme()
     const { logout, editProfile } = useAuth()
     const pathname = usePathname()
     const router = useRouter()
@@ -151,17 +154,21 @@ const Navigation = ({ user }) => {
     ]
 
     const userMenuItems = [
-        { label: 'Profil Saya', icon: FaUserCircle, href: '/profile' },
-        { label: 'Pesanan Saya', icon: FaHistory, href: '/orders' },
-        { label: 'Wishlist', icon: FaHeart, href: '/wishlist' },
-        { label: 'Pengaturan', icon: FaCog, href: '/settings' },
+        {
+            label: 'Pesanan Saya',
+            icon: FaHistory,
+            href: '/orders',
+            color: 'blue',
+        }, // histori → biru
+        { label: 'Wishlist', icon: FaHeart, href: '/wishlist', color: 'red' }, // wishlist → merah hati
+        { label: 'Pengaturan', icon: FaCog, href: '/settings', color: 'gray' }, // setting → netral abu-abu
     ]
 
     const adminMenuItems = [
-        { label: 'Dashboard', icon: FaTachometerAlt, href: '/dashboard' },
-        { label: 'Manajemen Role', icon: FaUsers, href: '/roles' },
-        { label: 'Permissions', icon: FaShieldAlt, href: '/permissions' },
-        { label: 'Kelola Toko', icon: FaStore, href: '/perpus' },
+        {label: 'Dashboard',icon: FaTachometerAlt,href: '/dashboard',color: 'blue',},
+        {label: 'Manajemen Role',icon: FaUsers,href: '/roles',color: 'green',},
+        {label: 'Permissions',icon: FaShieldAlt,href: '/permissions',color: 'yellow',},
+        {label: 'Kelola Toko',icon: FaStore,href: '/perpus',color: 'orange',},
     ]
 
     return (
@@ -448,7 +455,14 @@ const Navigation = ({ user }) => {
                                         <Menu.Item
                                             key={item.label}
                                             leftSection={
-                                                <item.icon size={16} />
+                                                <item.icon
+                                                    size={16}
+                                                    color={
+                                                        theme.colors[
+                                                            item.color
+                                                        ][6]
+                                                    }
+                                                />
                                             }
                                             onClick={item.action}
                                             component={
@@ -467,7 +481,14 @@ const Navigation = ({ user }) => {
                                                 <Menu.Item
                                                     key={item.label}
                                                     leftSection={
-                                                        <item.icon size={16} />
+                                                        <item.icon
+                                                            size={16}
+                                                            color={
+                                                                theme.colors[
+                                                                    item.color
+                                                                ][6]
+                                                            }
+                                                        />
                                                     }
                                                     component={Link}
                                                     href={item.href}>
@@ -489,10 +510,30 @@ const Navigation = ({ user }) => {
                         </Group>
 
                         {/* Burger for mobile */}
+                        <>
+                            {isMobile && (
+                                <ActionIcon
+                                    size={36}
+                                    variant="subtle"
+                                    color="white"
+                                    radius="xl"
+                                    onClick={() => setShowCart(!showCart)}>
+                                    <Indicator
+                                        label={totalItems}
+                                        size={14}
+                                        disabled={totalItems === 0}
+                                        offset={6}
+                                        color="indigo">
+                                        <FaShoppingCart size={20} />
+                                    </Indicator>
+                                </ActionIcon>
+                            )}
+                        </>
                         <Burger
                             opened={drawerOpened}
                             onClick={() => setDrawerOpened(o => !o)}
                             hiddenFrom="sm"
+                            color="pink.1"
                         />
                     </Group>
 
@@ -540,8 +581,14 @@ const Navigation = ({ user }) => {
                 {/* Category Navigation */}
                 <Box bg="gray.0" py="xs">
                     <Container size="xl">
-                        <ScrollArea>
-                            <Group gap="md" wrap="nowrap">
+                        <ScrollArea
+                            scrollbars="x"
+                            type="scroll"
+                            scrollbarSize={4}>
+                            <Group
+                                gap="sm"
+                                wrap="nowrap"
+                                style={{ minWidth: 'max-content' }}>
                                 {/* menu umum */}
                                 {pathname.startsWith('/dashboard') &&
                                     mainMenuItems.map(item => (
@@ -635,24 +682,6 @@ const Navigation = ({ user }) => {
                 zIndex={1001}>
                 <ScrollArea style={{ height: 'calc(100vh - 120px)' }}>
                     <Stack gap="xs">
-                        <Paper p="xs" radius="md" withBorder>
-                            <Stack gap="xs">
-                                {mainMenuItems.map(item => (
-                                    <Button
-                                        key={item.label}
-                                        fullWidth
-                                        component={Link}
-                                        href={item.href}
-                                        variant="subtle"
-                                        justify="flex-start"
-                                        leftSection={<item.icon size={18} />}
-                                        onClick={() => setDrawerOpened(false)}>
-                                        {item.label}
-                                    </Button>
-                                ))}
-                            </Stack>
-                        </Paper>
-
                         <Divider label="Akun Saya" labelPosition="left" />
 
                         {userMenuItems.map(item => (
@@ -661,7 +690,13 @@ const Navigation = ({ user }) => {
                                 fullWidth
                                 variant="subtle"
                                 justify="flex-start"
-                                leftSection={<item.icon size={18} />}
+                                color="black"
+                                leftSection={
+                                    <item.icon
+                                        size={18}
+                                        color={theme.colors[item.color][6]}
+                                    />
+                                }
                                 onClick={() => {
                                     setDrawerOpened(false)
                                     item.action?.()
@@ -681,7 +716,15 @@ const Navigation = ({ user }) => {
                                         fullWidth
                                         variant="subtle"
                                         justify="flex-start"
-                                        leftSection={<item.icon size={18} />}
+                                        color="black"
+                                        leftSection={
+                                            <item.icon
+                                                size={18}
+                                                color={
+                                                    theme.colors[item.color][6]
+                                                }
+                                            />
+                                        }
                                         component={Link}
                                         href={item.href}
                                         onClick={() => setDrawerOpened(false)}>
