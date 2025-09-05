@@ -43,6 +43,7 @@ import {
     FaBookOpen,
     FaTags,
     FaGift,
+    FaChevronRight,
 } from 'react-icons/fa'
 import { IoChevronDown, IoLocationSharp, IoGrid } from 'react-icons/io5'
 import { useCart } from './context/CartContext'
@@ -414,6 +415,34 @@ const Navigation = ({ user }) => {
                                 </Menu.Target>
 
                                 <Menu.Dropdown>
+                                    <Menu.Item
+                                        onClick={() => router.push('/settings')}
+                                        rightSection={
+                                            <FaChevronRight
+                                                size={16}
+                                                stroke={1.5}
+                                            />
+                                        }>
+                                        <Group>
+                                            <Avatar
+                                                radius="xl"
+                                                src={avatarUrl || null}>
+                                                {!avatarUrl &&
+                                                    displayName
+                                                        ?.charAt(0)
+                                                        .toUpperCase()}
+                                            </Avatar>
+
+                                            <div>
+                                                <Text fw={500}>
+                                                    {displayName}
+                                                </Text>
+                                                <Text size="xs" c="dimmed">
+                                                    {displayEmail}
+                                                </Text>
+                                            </div>
+                                        </Group>
+                                    </Menu.Item>
                                     <Menu.Label>Akun Saya</Menu.Label>
                                     {userMenuItems.map(item => (
                                         <Menu.Item

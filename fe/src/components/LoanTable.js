@@ -236,6 +236,7 @@ export default function LoansTable() {
                                     <Group gap="xs" justify="center">
                                         <Button
                                             size="xs"
+                                            variant="light"
                                             onClick={() => {
                                                 setSelectedLoan({
                                                     ...loan,
@@ -249,6 +250,7 @@ export default function LoansTable() {
                                         <Button
                                             size="xs"
                                             color="red"
+                                            variant="light"
                                             onClick={() => {
                                                 setSelectedLoan(loan)
                                                 setModalType('delete')
