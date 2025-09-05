@@ -7,16 +7,18 @@ import Link from 'next/link'
 import AuthSessionStatus from '@/app/(auth)/AuthSessionStatus'
 
 import {
-    Button,
-    TextInput,
-    PasswordInput,
-    Checkbox,
-    Stack,
-    Group,
     Anchor,
+    Button,
+    Checkbox,
+    Paper,
+    PasswordInput,
+    Text,
+    TextInput,
+    Title,
 } from '@mantine/core'
+import classes from './AuthenticationCentered.module.css'
 
-const Login = () => {
+export default function LoginPage() {
     const router = useRouter()
 
     const { login } = useAuth({
@@ -38,9 +40,8 @@ const Login = () => {
         }
     }, [router.reset, errors])
 
-    const submitForm = async event => {
-        event.preventDefault()
-
+    const submitForm = async e => {
+        e.preventDefault()
         login({
             email,
             password,
@@ -51,62 +52,74 @@ const Login = () => {
     }
 
     return (
-        <>
-            <AuthSessionStatus status={status} />
+        <div className={classes.wrapper}>
+            {/* Overlay blur */}
+            <div className={classes.overlay} />
+            <Paper
+                className={classes.form}
+                radius="md"
+                shadow="md"
+                p="xl"
+                withBorder
+                component="form"
+                onSubmit={submitForm}>
+                <Title order={2} className={classes.title}>
+                    Welcome back!
+                </Title>
 
-            <form onSubmit={submitForm}>
-                <Stack spacing="md">
-                    {/* Email */}
-                    <TextInput
-                        label="Email"
-                        id="email"
-                        type="email"
-                        value={email}
-                        onChange={event => setEmail(event.currentTarget.value)}
-                        required
-                        autoFocus
-                        error={errors.email}
-                    />
+                {/* Status message */}
+                <AuthSessionStatus status={status} />
 
-                    {/* Password */}
-                    <PasswordInput
-                        label="Password"
-                        id="password"
-                        value={password}
-                        onChange={event =>
-                            setPassword(event.currentTarget.value)
-                        }
-                        required
-                        autoComplete="current-password"
-                        error={errors.password}
-                    />
+                <TextInput
+                    label="Email address"
+                    placeholder="hello@gmail.com"
+                    size="md"
+                    radius="md"
+                    value={email}
+                    onChange={e => setEmail(e.currentTarget.value)}
+                    error={errors.email}
+                    required
+                    autoFocus
+                />
 
-                    {/* Remember Me */}
-                    <Checkbox
-                        label="Remember me"
-                        id="remember_me"
-                        checked={shouldRemember}
-                        onChange={event =>
-                            setShouldRemember(event.currentTarget.checked)
-                        }
-                    />
+                <PasswordInput
+                    label="Password"
+                    placeholder="Your password"
+                    mt="md"
+                    size="md"
+                    radius="md"
+                    value={password}
+                    onChange={e => setPassword(e.currentTarget.value)}
+                    error={errors.password}
+                    required
+                    autoComplete="current-password"
+                />
 
-                    {/* Actions */}
-                    <Group justify="flex-end" spacing="lg" mt="md">
-                        <Anchor
-                            component={Link}
-                            href="/forgot-password"
-                            size="sm">
-                            Forgot your password?
-                        </Anchor>
-                        <Button type="submit" color="rgba(50, 50, 84, 1)">
-                            Login
-                        </Button>
-                    </Group>
-                </Stack>
-            </form>
-        </>
+                <Checkbox
+                    label="Remember me"
+                    mt="xl"
+                    size="md"
+                    checked={shouldRemember}
+                    onChange={e => setShouldRemember(e.currentTarget.checked)}
+                />
+
+                <Button type="submit" fullWidth mt="xl" size="md" radius="md">
+                    Login
+                </Button>
+
+                <Text ta="center" mt="md" fz="sm">
+                    <Anchor component={Link} href="/forgot-password" fw={500}>
+                        Forgot your password?
+                    </Anchor>
+                </Text>
+
+                <Text ta="center" mt="xs" fz="sm">
+                    Don’t have an account?{' '}
+                    <Anchor component={Link} href="/register" fw={500}>
+                        Register
+                    </Anchor>
+                </Text>
+            </Paper>
+        </div>
     )
 }
-
-export default Login

@@ -1,10 +1,23 @@
 'use client'
 
-import Button from '@/components/Button'
-import { useAuth } from '@/hooks/auth'
 import { useState } from 'react'
+import { useAuth } from '@/hooks/auth'
 
-const Page = () => {
+// Mantine components
+import {
+    Alert,
+    Anchor,
+    Button,
+    Center,
+    Container,
+    Group,
+    Paper,
+    Text,
+    Title,
+} from '@mantine/core'
+import { FaInfoCircle, FaCheck } from 'react-icons/fa'
+
+const VerifyEmailPage = () => {
     const { logout, resendEmailVerification } = useAuth({
         middleware: 'auth',
         redirectIfAuthenticated: '/dashboard',
@@ -13,35 +26,52 @@ const Page = () => {
     const [status, setStatus] = useState(null)
 
     return (
-        <>
-            <div className="mb-4 text-sm text-gray-600">
-                Thanks for signing up! Before getting started, could you verify
-                your email address by clicking on the link we just
-                emailed to you? If you didn't receive the email, we will gladly
-                send you another.
-            </div>
+        <Center style={{ minHeight: '100vh' }}>
+            <Container size={460} my={40}>
+                <Title ta="center" order={2} mb="sm">
+                    Verify your email
+                </Title>
 
-            {status === 'verification-link-sent' && (
-                <div className="mb-4 font-medium text-sm text-green-600">
-                    A new verification link has been sent to the email address
-                    you provided during registration.
-                </div>
-            )}
+                <Text c="dimmed" fz="sm" ta="center" mb="xl">
+                    Thanks for signing up! Please verify your email address by
+                    clicking on the link we just sent. Didn’t get the email? You
+                    can request another verification link below.
+                </Text>
 
-            <div className="mt-4 flex items-center justify-between">
-                <Button onClick={() => resendEmailVerification({ setStatus })}>
-                    Resend Verification Email
-                </Button>
+                <Paper withBorder shadow="md" p="xl" radius="md">
+                    {/* Success Message */}
+                    {status === 'verification-link-sent' && (
+                        <Alert
+                            icon={<FaCheck size={16} />}
+                            title="Verification link sent"
+                            color="green"
+                            mb="lg">
+                            A new verification link has been sent to the email
+                            address you provided during registration.
+                        </Alert>
+                    )}
 
-                <button
-                    type="button"
-                    className="underline text-sm text-gray-600 hover:text-gray-900"
-                    onClick={logout}>
-                    Logout
-                </button>
-            </div>
-        </>
+                    <Group justify="space-between">
+                        <Button
+                            leftSection={<FaInfoCircle/>}
+                            onClick={() =>
+                                resendEmailVerification({ setStatus })
+                            }>
+                            Resend Verification Email
+                        </Button>
+
+                        <Anchor
+                            component="button"
+                            size="sm"
+                            c="dimmed"
+                            onClick={logout}>
+                            Logout
+                        </Anchor>
+                    </Group>
+                </Paper>
+            </Container>
+        </Center>
     )
 }
 
-export default Page
+export default VerifyEmailPage

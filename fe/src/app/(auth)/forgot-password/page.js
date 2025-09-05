@@ -1,64 +1,93 @@
 'use client'
 
-import Button from '@/components/Button'
-import Input from '@/components/Input'
-import InputError from '@/components/InputError'
-import Label from '@/components/Label'
-import { useAuth } from '@/hooks/auth'
 import { useState } from 'react'
+import { useAuth } from '@/hooks/auth'
 import AuthSessionStatus from '@/app/(auth)/AuthSessionStatus'
 
-const Page = () => {
+// Mantine
+import {
+    Box,
+    Button,
+    Center,
+    Container,
+    Group,
+    Paper,
+    Text,
+    Title,
+    Anchor,
+    TextInput,
+} from '@mantine/core'
+import { FaArrowLeft } from 'react-icons/fa'
+import classes from './FloatingLabelInput.module.css'
+
+export default function ForgotPasswordPage() {
     const { forgotPassword } = useAuth({
         middleware: 'guest',
         redirectIfAuthenticated: '/dashboard',
     })
 
     const [email, setEmail] = useState('')
-    const [errors, setErrors] = useState([])
+    const [errors, setErrors] = useState({})
     const [status, setStatus] = useState(null)
+    const [focused, setFocused] = useState(false)
 
-    const submitForm = event => {
-        event.preventDefault()
+    // kondisi apakah label mengambang (floating)
+    const floating = email.trim().length !== 0 || focused || undefined
 
+    const submitForm = e => {
+        e.preventDefault()
         forgotPassword({ email, setErrors, setStatus })
     }
 
     return (
-        <>
-            <div className="mb-4 text-sm text-gray-600">
-                Forgot your password? No problem. Just let us know your email
-                address and we will email you a password reset link that
-                will allow you to choose a new one.
-            </div>
+        <Center style={{ minHeight: '100vh' }}>
+            <Container size={460} p="md">
+                <Title ta="center" order={2} mb="sm">
+                    Forgot your password?
+                </Title>
 
-            {/* Session Status */}
-            <AuthSessionStatus className="mb-4" status={status} />
+                <Text c="dimmed" fz="sm" ta="center" mb="xl">
+                    No problem. Just enter your email and we’ll send you a reset
+                    link.
+                </Text>
 
-            <form onSubmit={submitForm}>
-                {/* Email Address */}
-                <div>
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                        id="email"
+                <AuthSessionStatus status={status} />
+
+                <Paper
+                    withBorder
+                    shadow="md"
+                    p="xl"
+                    radius="md"
+                    component="form"
+                    onSubmit={submitForm}>
+                    <TextInput
+                        classNames={classes}
+                        label="Email address"
+                        placeholder="me@example.com"
                         type="email"
-                        name="email"
                         value={email}
-                        className="block mt-1 w-full"
-                        onChange={event => setEmail(event.target.value)}
                         required
                         autoFocus
+                        onFocus={() => setFocused(true)}
+                        onBlur={() => setFocused(false)}
+                        data-floating={floating}
+                        labelProps={{ 'data-floating': floating }}
+                        onChange={e => setEmail(e.currentTarget.value)}
+                        error={errors.email && errors.email[0]}
                     />
 
-                    <InputError messages={errors.email} className="mt-2" />
-                </div>
+                    <Group justify="space-between" mt="lg">
+                        <Anchor href="/login" c="dimmed" size="sm">
+                            <Center inline>
+                                <FaArrowLeft size={12} />
+                                <Box ml={5}>Back to login</Box>
+                            </Center>
+                        </Anchor>
 
-                <div className="flex items-center justify-end mt-4">
-                    <Button>Email Password Reset Link</Button>
-                </div>
-            </form>
-        </>
+                        <Button type="submit">Send reset link</Button>
+                    </Group>
+                </Paper>
+            </Container>
+        </Center>
     )
 }
-
-export default Page
