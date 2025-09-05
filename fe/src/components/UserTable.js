@@ -18,6 +18,10 @@ import {
     Checkbox,
     Center,
     Loader,
+    Text,
+    Avatar,
+    FileButton,
+    Select,
 } from '@mantine/core'
 
 const fetcher = url => api.get(url).then(res => res.data)
@@ -80,29 +84,82 @@ export default function AllUsersPage() {
     const meta = usersResp?.meta || {}
     const lastPage = meta.last_page || 1
 
+    const [roles, setRoles] = useState([])
+    const [avatar, setAvatar] = useState(null)
+    const [preview, setPreview] = useState(null)
+
+    useEffect(() => {
+        api.get('/api/roles').then(res => {
+            const roleOptions = res.data.map(r => ({
+                value: r.name,
+                label: r.name.charAt(0).toUpperCase() + r.name.slice(1),
+            }))
+            setRoles(roleOptions)
+        })
+    }, [])
+
+    // helper: ada avatar jika sudah punya preview ATAU user punya avatar_url
+    const hasAvatar = !!(preview || selectedUser?.avatar_url)
+
+    // cleanup objectURL saat berubah/unmount
+    useEffect(() => {
+        return () => {
+            if (preview) URL.revokeObjectURL(preview)
+        }
+    }, [preview])
+
     const handleAdd = async e => {
         e.preventDefault()
-        await toast.promise(api.post(`/api/perpus/users`, selectedUser), {
-            loading: '📡 Menyimpan user...',
-            success: '👤 User ditambahkan!',
-            error: '❌ Gagal tambah user',
-        })
-        mutate()
-        setModalType(null)
+        try {
+            const formData = new FormData()
+            formData.append('name', selectedUser.name)
+            formData.append('email', selectedUser.email)
+            formData.append('password', selectedUser.password)
+            formData.append('role', selectedUser.role) // hanya single role
+            if (avatar) formData.append('avatar', avatar)
+
+            await toast.promise(api.post(`/api/perpus/users`, formData), {
+                loading: '📡 Menyimpan user...',
+                success: '👤 User ditambahkan!',
+                error: '❌ Gagal tambah user',
+            })
+            mutate()
+            setModalType(null)
+        } catch (err) {
+            console.error(err)
+            toast.error('❌ Error simpan user')
+        }
     }
 
     const handleEdit = async e => {
         e.preventDefault()
-        await toast.promise(
-            api.put(`/api/perpus/users/${selectedUser.id}`, selectedUser),
-            {
-                loading: '⏳ Update user...',
-                success: '✏️ User diperbarui!',
-                error: '❌ Gagal update user',
-            },
-        )
-        mutate()
-        setModalType(null)
+        try {
+            const formData = new FormData()
+            formData.append('name', selectedUser.name)
+            formData.append('email', selectedUser.email)
+            if (selectedUser.password) {
+                formData.append('password', selectedUser.password)
+            }
+            formData.append('role', selectedUser.role)
+            if (avatar) formData.append('avatar', avatar)
+
+            await toast.promise(
+                api.post(
+                    `/api/perpus/users/${selectedUser.id}?_method=PUT`,
+                    formData,
+                ),
+                {
+                    loading: '⏳ Update user...',
+                    success: '✏️ User diperbarui!',
+                    error: '❌ Gagal update user',
+                },
+            )
+            mutate()
+            setModalType(null)
+        } catch (err) {
+            console.error(err)
+            toast.error('❌ Error update user')
+        }
     }
 
     const handleDelete = async id => {
@@ -156,11 +213,6 @@ export default function AllUsersPage() {
                             leftSection="➕"
                             color="teal"
                             onClick={() => {
-                                setSelectedUser({
-                                    name: '',
-                                    email: '',
-                                    password: '',
-                                })
                                 setModalType('add')
                             }}>
                             Tambah
@@ -216,17 +268,18 @@ export default function AllUsersPage() {
                                         />
                                     </Center>
                                 </Table.Th>
-                                <Table.Th>No</Table.Th>
                                 <Table.Th>Nama</Table.Th>
                                 <Table.Th>Email</Table.Th>
+                                <Table.Th>Role</Table.Th>
                                 <Table.Th>
                                     <Center>Aksi</Center>
                                 </Table.Th>
                             </Table.Tr>
                         </Table.Thead>
                         <Table.Tbody>
-                            {users.map((u, idx) => (
+                            {users.map(u => (
                                 <Table.Tr key={u.id}>
+                                    {/* Checkbox */}
                                     <Table.Td>
                                         <Center>
                                             {canDelete(u) ? (
@@ -239,22 +292,58 @@ export default function AllUsersPage() {
                                                     }
                                                 />
                                             ) : (
-                                                <Checkbox
-                                                    disabled
-                                                    style={{
-                                                        cursor: 'not-allowed',
-                                                        opacity: 0.5,
-                                                    }}
-                                                />
+                                                <Center>
+                                                    <Checkbox
+                                                        checked={selectedIds.includes(
+                                                            u.id,
+                                                        )}
+                                                        onChange={() =>
+                                                            canDelete(u) &&
+                                                            toggleSelect(u.id)
+                                                        }
+                                                        disabled={!canDelete(u)}
+                                                        style={
+                                                            !canDelete(u)
+                                                                ? {
+                                                                      cursor: 'not-allowed',
+                                                                      opacity: 0.5,
+                                                                  }
+                                                                : {}
+                                                        }
+                                                    />
+                                                </Center>
                                             )}
                                         </Center>
                                     </Table.Td>
-                                    <Table.Td>
-                                        {(meta.from ??
-                                            (page - 1) * perPage + 1) + idx}
-                                    </Table.Td>
+
+                                    {/* Name */}
                                     <Table.Td fw={500}>{u.name}</Table.Td>
+
+                                    {/* Email */}
                                     <Table.Td>{u.email}</Table.Td>
+
+                                    {/* Roles => array */}
+                                    <Table.Td>
+                                        <Group gap="xs">
+                                            {u.roles && u.roles.length > 0 ? (
+                                                u.roles.map((role, i) => (
+                                                    <Text
+                                                        key={i}
+                                                        tt="capitalize" // Mantine prop untuk text-transform
+                                                        size="sm"
+                                                        fw={500}>
+                                                        {role}
+                                                    </Text>
+                                                ))
+                                            ) : (
+                                                <Text c="dimmed" size="sm">
+                                                    No role
+                                                </Text>
+                                            )}
+                                        </Group>
+                                    </Table.Td>
+
+                                    {/* Action Buttons */}
                                     <Table.Td>
                                         <Group gap="xs" justify="center">
                                             <Button
@@ -267,6 +356,7 @@ export default function AllUsersPage() {
                                                 }}>
                                                 Edit
                                             </Button>
+
                                             {canDelete(u) && (
                                                 <Button
                                                     size="xs"
@@ -297,7 +387,7 @@ export default function AllUsersPage() {
                         Prev
                     </Button>
                     {isValidating ? (
-                        <Loader type='dots'/>
+                        <Loader type="dots" />
                     ) : (
                         <span>
                             Page <b>{meta.current_page}</b> dari{' '}
@@ -324,6 +414,42 @@ export default function AllUsersPage() {
                 overlayProps={{ blur: 4 }}>
                 <form onSubmit={handleAdd}>
                     <Stack>
+                        {/* Avatar Upload */}
+                        <Group justify="center" mb="md">
+                            <Avatar
+                                src={preview || null}
+                                alt={selectedUser?.name}
+                                size={80}
+                                radius="xl"
+                                color="blue">
+                                {selectedUser?.name?.charAt(0)?.toUpperCase()}
+                            </Avatar>
+
+                            <FileButton
+                                onChange={file => {
+                                    setAvatar(file)
+                                    if (file) {
+                                        if (preview)
+                                            URL.revokeObjectURL(preview)
+                                        setPreview(URL.createObjectURL(file))
+                                    } else {
+                                        setPreview(null)
+                                    }
+                                }}
+                                accept="image/png,image/jpeg">
+                                {props => (
+                                    <Button
+                                        {...props}
+                                        variant="light"
+                                        size="xs">
+                                        {preview
+                                            ? 'Change avatar'
+                                            : 'Upload avatar'}
+                                    </Button>
+                                )}
+                            </FileButton>
+                        </Group>
+
                         <TextInput
                             label="Nama"
                             placeholder="Masukkan nama"
@@ -336,6 +462,7 @@ export default function AllUsersPage() {
                             }
                             required
                         />
+
                         <TextInput
                             label="Email"
                             type="email"
@@ -349,6 +476,7 @@ export default function AllUsersPage() {
                             }
                             required
                         />
+
                         <TextInput
                             label="Password"
                             type="password"
@@ -358,6 +486,21 @@ export default function AllUsersPage() {
                                 setSelectedUser({
                                     ...selectedUser,
                                     password: e.target.value,
+                                })
+                            }
+                            required
+                        />
+
+                        <Select
+                            label="Role"
+                            data={roles}
+                            searchable
+                            nothingFoundMessage="Role tidak ditemukan"
+                            value={selectedUser?.role || null}
+                            onChange={value =>
+                                setSelectedUser({
+                                    ...selectedUser,
+                                    role: value,
                                 })
                             }
                             required
@@ -386,6 +529,43 @@ export default function AllUsersPage() {
                 overlayProps={{ blur: 4 }}>
                 <form onSubmit={handleEdit}>
                     <Stack>
+                        <Group justify="center" mb="md">
+                            <Avatar
+                                src={
+                                    preview || selectedUser?.avatar_url || null
+                                }
+                                alt={selectedUser?.name}
+                                size={80}
+                                radius="xl"
+                                color="blue">
+                                {selectedUser?.name?.charAt(0)?.toUpperCase()}
+                            </Avatar>
+
+                            <FileButton
+                                onChange={file => {
+                                    setAvatar(file)
+                                    if (file) {
+                                        if (preview)
+                                            URL.revokeObjectURL(preview)
+                                        setPreview(URL.createObjectURL(file))
+                                    } else {
+                                        setPreview(null)
+                                    }
+                                }}
+                                accept="image/png,image/jpeg">
+                                {props => (
+                                    <Button
+                                        {...props}
+                                        variant="light"
+                                        size="xs">
+                                        {hasAvatar
+                                            ? 'Change avatar'
+                                            : 'Upload avatar'}
+                                    </Button>
+                                )}
+                            </FileButton>
+                        </Group>
+
                         <TextInput
                             label="Nama"
                             value={selectedUser?.name || ''}
@@ -397,6 +577,7 @@ export default function AllUsersPage() {
                             }
                             required
                         />
+
                         <TextInput
                             label="Email"
                             type="email"
@@ -405,6 +586,24 @@ export default function AllUsersPage() {
                                 setSelectedUser({
                                     ...selectedUser,
                                     email: e.target.value,
+                                })
+                            }
+                            required
+                        />
+
+                        <Select
+                            label="Role"
+                            data={roles}
+                            searchable
+                            nothingFoundMessage="Role tidak ditemukan"
+                            value={
+                                selectedUser?.role ||
+                                (selectedUser?.roles?.[0] ?? null)
+                            }
+                            onChange={value =>
+                                setSelectedUser({
+                                    ...selectedUser,
+                                    role: value,
                                 })
                             }
                             required
