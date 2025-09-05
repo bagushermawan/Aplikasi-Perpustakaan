@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import api from '@/lib/axios'
 import useSWR from 'swr'
+import Link from 'next/link'
 import { FaUsers, FaBook, FaClipboardList, FaBookReader } from 'react-icons/fa'
 import {
     Card,
@@ -24,7 +25,6 @@ const PerpusPage = () => {
             .catch(err => console.error(err))
     }, [])
 
-    // pakai SWR untuk masing-masing data
     const { data: usersResp, isValidating: loadingUsers } = useSWR(
         '/api/perpus/users',
         fetcher,
@@ -56,6 +56,50 @@ const PerpusPage = () => {
         borrowedBooks: borrowedResp?.meta?.total ?? 0,
     }
 
+    // config cards
+    const cards = [
+        ...(currentUser?.role === 'admin'
+            ? [
+                  {
+                      label: 'Total Users',
+                      icon: FaUsers,
+                      value: stats.users,
+                      loading: loadingUsers,
+                      color: '#3b82f6',
+                      hover: '#2563eb',
+                      href: '/perpus/users',
+                  },
+              ]
+            : []),
+        {
+            label: 'Total Books',
+            icon: FaBook,
+            value: stats.books,
+            loading: loadingBooks,
+            color: '#22c55e',
+            hover: '#16a34a',
+            href: '/perpus/books',
+        },
+        {
+            label: 'Total Loans',
+            icon: FaClipboardList,
+            value: stats.loans,
+            loading: loadingLoans,
+            color: '#eab308',
+            hover: '#ca8a04',
+            href: '/perpus/loans',
+        },
+        {
+            label: 'Currently Borrowed',
+            icon: FaBookReader,
+            value: stats.borrowedBooks,
+            loading: loadingBorrowed,
+            color: '#ef4444',
+            hover: '#dc2626',
+            href: '/perpus/loans?status=borrowed',
+        },
+    ]
+
     return (
         <Container size="lg" py="xl">
             <Card shadow="sm" p="lg" radius="md" withBorder>
@@ -67,141 +111,49 @@ const PerpusPage = () => {
                     cols={{ base: 1, sm: 2, md: 3, lg: 4 }}
                     spacing="lg"
                     mb="lg">
-                    {/* Total Users */}
-                    {currentUser?.role === 'admin' && (
-                        <Card
-                            shadow="sm"
-                            radius="md"
-                            p="md"
-                            style={{
-                                backgroundColor: '#3b82f6',
-                                transition: 'background-color 0.3s',
-                                cursor: 'pointer',
-                            }}
-                            onMouseEnter={e =>
-                                (e.currentTarget.style.backgroundColor =
-                                    '#2563eb')
-                            }
-                            onMouseLeave={e =>
-                                (e.currentTarget.style.backgroundColor =
-                                    '#3b82f6')
-                            }>
-                            <Group align="center">
-                                <FaUsers size={36} color="white" />
-                                <div>
-                                    <Text fw={500} c="white">
-                                        Total Users
-                                    </Text>
-                                    <Text size="xl" fw={700} c="white">
-                                        {loadingUsers ? (
-                                            <Loader size="xs" color="white" />
-                                        ) : (
-                                            stats.users
-                                        )}
-                                    </Text>
-                                </div>
-                            </Group>
-                        </Card>
-                    )}
-
-                    {/* Total Books */}
-                    <Card
-                        shadow="sm"
-                        radius="md"
-                        p="md"
-                        style={{
-                            backgroundColor: '#22c55e',
-                            transition: 'background-color 0.3s',
-                            cursor: 'pointer',
-                        }}
-                        onMouseEnter={e =>
-                            (e.currentTarget.style.backgroundColor = '#16a34a')
-                        }
-                        onMouseLeave={e =>
-                            (e.currentTarget.style.backgroundColor = '#22c55e')
-                        }>
-                        <Group align="center">
-                            <FaBook size={36} color="white" />
-                            <div>
-                                <Text fw={500} c="white">
-                                    Total Books
-                                </Text>
-                                <Text size="xl" fw={700} c="white">
-                                    {loadingBooks ? (
-                                        <Loader size="xs" color="white" />
-                                    ) : (
-                                        stats.books
-                                    )}
-                                </Text>
-                            </div>
-                        </Group>
-                    </Card>
-
-                    {/* Total Loans */}
-                    <Card
-                        shadow="sm"
-                        radius="md"
-                        p="md"
-                        style={{
-                            backgroundColor: '#eab308',
-                            transition: 'background-color 0.3s',
-                            cursor: 'pointer',
-                        }}
-                        onMouseEnter={e =>
-                            (e.currentTarget.style.backgroundColor = '#ca8a04')
-                        }
-                        onMouseLeave={e =>
-                            (e.currentTarget.style.backgroundColor = '#eab308')
-                        }>
-                        <Group align="center">
-                            <FaClipboardList size={36} color="white" />
-                            <div>
-                                <Text fw={500} c="white">
-                                    Total Loans
-                                </Text>
-                                <Text size="xl" fw={700} c="white">
-                                    {loadingLoans ? (
-                                        <Loader size="xs" color="white" />
-                                    ) : (
-                                        stats.loans
-                                    )}
-                                </Text>
-                            </div>
-                        </Group>
-                    </Card>
-
-                    {/* Borrowed Books */}
-                    <Card
-                        shadow="sm"
-                        radius="md"
-                        p="md"
-                        style={{
-                            backgroundColor: '#ef4444',
-                            transition: 'background-color 0.3s',
-                            cursor: 'pointer',
-                        }}
-                        onMouseEnter={e =>
-                            (e.currentTarget.style.backgroundColor = '#dc2626')
-                        }
-                        onMouseLeave={e =>
-                            (e.currentTarget.style.backgroundColor = '#ef4444')
-                        }>
-                        <Group align="center">
-                            <FaBookReader size={36} color="white" />
-                            <div>
-                                <Text fw={500} c="white">
-                                    Currently Borrowed
-                                </Text>
-                                <Text size="xl" fw={700} c="white">
-                                    {loadingBorrowed ? (
-                                        <Loader size="xs" color="white" />
-                                    ) : (
-                                        stats.borrowedBooks
-                                    )}
-                                </Text>
-                            </div>
-                        </Group>
-                    </Card>
+                    {cards.map(card => (
+                        <Link
+                            key={card.label}
+                            href={card.href}
+                            style={{ textDecoration: 'none' }}>
+                            <Card
+                                shadow="sm"
+                                radius="md"
+                                p="md"
+                                style={{
+                                    backgroundColor: card.color,
+                                    transition: 'background-color 0.3s',
+                                    cursor: 'pointer',
+                                }}
+                                onMouseEnter={e =>
+                                    (e.currentTarget.style.backgroundColor =
+                                        card.hover)
+                                }
+                                onMouseLeave={e =>
+                                    (e.currentTarget.style.backgroundColor =
+                                        card.color)
+                                }>
+                                <Group align="center">
+                                    <card.icon size={36} color="white" />
+                                    <div>
+                                        <Text fw={500} c="white">
+                                            {card.label}
+                                        </Text>
+                                        <Text size="xl" fw={700} c="white">
+                                            {card.loading ? (
+                                                <Loader
+                                                    size="xs"
+                                                    color="white"
+                                                />
+                                            ) : (
+                                                card.value
+                                            )}
+                                        </Text>
+                                    </div>
+                                </Group>
+                            </Card>
+                        </Link>
+                    ))}
                 </SimpleGrid>
             </Card>
 
